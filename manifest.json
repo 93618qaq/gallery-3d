@@ -122,10 +122,10 @@
     },
     {
       "path": "小釋迦/小釋迦.html",
-      "bytes": 7802,
-      "sha256": "4c681463e8a8d4361b8201a6a09d61770956ac79d34cf7b4b34a16842a6ea864",
-      "source_sha256": "4c681463e8a8d4361b8201a6a09d61770956ac79d34cf7b4b34a16842a6ea864"
+      "bytes": 7843,
+      "sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935",
+      "source_sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935"
     }
   ],
-  "total_bytes": 119577185
+  "total_bytes": 119577226
 }

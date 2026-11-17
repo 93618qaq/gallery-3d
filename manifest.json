@@ -7,10 +7,10 @@
   "files": [
     {
       "path": "展場/index.html",
-      "bytes": 83490,
-      "source_sha256": "20301b7a0a700ff1d54153935c8b96928af8c1eadb21a32a5e520fc2cd8ace16",
-      "sha256": "deceeb9644e3d018809a23081dedfe4e16e5ce3aefc266733fdee757ff22d518",
-      "note": "2026-11-17 公開後只改雕像3 那一行（改載扶正版劍龍、拿掉 ?dragon 診斷參數）；source_sha256 是打包當時的來源"
+      "bytes": 83232,
+      "source_sha256": "22827ddcb8968fc5b6fa4cd00cb593b374a3f74ed319a4f9c6b86935ae20227a",
+      "sha256": "5867e51b1ecc954bddf2b9e2991b433c1556390ec9752c491dd81d63551377ee",
+      "note": "2026-11-17 本輪只改劍龍那一行，換入番薯驗收細節版；公開版維持無診斷參數。"
     },
     {
       "path": "展場/互動回饋.js",
@@ -101,7 +101,14 @@
       "bytes": 5866420,
       "source_sha256": "e34eba9631a7845bff3505a2555bd59486a2edae71fbde57089627fe505fc958",
       "sha256": "e34eba9631a7845bff3505a2555bd59486a2edae71fbde57089627fe505fc958"
+    },
+    {
+      "path": "作品4_新雕件/sculpture3_detail_20261117.glb",
+      "bytes": 33413156,
+      "sha256": "8efe6ba72cf062dd3dce12768c5024a7fdb9fc575864b542a40cb5ca760ca2f4",
+      "source_sha256": "8efe6ba72cf062dd3dce12768c5024a7fdb9fc575864b542a40cb5ca760ca2f4",
+      "note": "番薯已接受的本機原模型，原貼圖／網格未壓縮或修改。"
     }
   ],
-  "total_bytes": 40266497
+  "total_bytes": 73679395
 }

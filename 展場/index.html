@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>3D 展場模擬</title>
+<style>
+  :root{--ink:#141414;--paper:#f3f0ea;--accent:#c8452f;--ease:cubic-bezier(.22,1,.36,1)}
+  html,body{margin:0;height:100%;background:#0e0e0f;overflow:hidden;font-family:-apple-system,"PingFang TC","Noto Sans TC",sans-serif;color:#eee;touch-action:none;-webkit-user-select:none;user-select:none}
+  canvas{display:block;width:100vw;height:100vh;touch-action:none}
+  #hint{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom));transform:translateX(-50%);padding:10px 18px;background:rgba(0,0,0,.55);border-radius:22px;font-size:14px;letter-spacing:.04em;pointer-events:none;transition:opacity .6s;text-align:center;max-width:86vw}
+  #load{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#0e0e0f;font-size:16px;letter-spacing:.1em;transition:opacity .8s;z-index:30}
+  #load.done{opacity:0;pointer-events:none}
+  /* 開場：黑幕＋標題 */
+  #intro{position:fixed;inset:0;z-index:20;background:#0e0e0f;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity 1.5s var(--ease)}
+  #intro.out{opacity:0;pointer-events:none}
+  #title{font-family:"Noto Serif TC","Songti TC","Source Han Serif TC",serif;font-size:clamp(30px,6vw,76px);color:var(--paper);letter-spacing:.12em;display:flex;overflow:hidden;padding:.1em .05em}
+  #title span{display:inline-block;transform:translateY(110%);opacity:0;transition:transform 1s var(--ease),opacity .8s var(--ease)}
+  #title.in span{transform:none;opacity:1}
+  #sub{margin-top:18px;font-size:13px;letter-spacing:.3em;color:#a9a59c;opacity:0;transition:opacity 1s .5s}
+  #sub.in{opacity:1}
+  /* 樣品切換 */
+  #variant{position:fixed;top:14px;left:14px;display:flex;gap:6px;z-index:25}
+  #variant a{font-size:14px;color:#fff;text-decoration:none;background:rgba(20,20,22,.72);border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:8px 14px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:transform .35s var(--ease),background .2s}
+  #variant a.on{background:#f3f0ea;color:#141414;border-color:#f3f0ea}
+  #variant a:hover{transform:translateY(-2px)}
+  #variant a:focus-visible,#back:focus-visible,#spin:focus-visible{outline:2px solid #f3f0ea;outline-offset:3px}
+  #joy{position:fixed;left:calc(22px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);display:none;touch-action:none;z-index:22}
+  #knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.35)}
+  .touch #joy{display:block}
+  #bar{position:fixed;top:14px;left:14px;display:none;gap:8px;z-index:25}
+  #bar button{font:inherit;font-size:15px;color:#fff;background:rgba(20,20,22,.72);border:1px solid rgba(255,255,255,.25);border-radius:22px;padding:10px 18px;cursor:pointer;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  #name{position:fixed;top:14px;right:14px;text-align:right;font-size:13px;line-height:1.7;padding:10px 14px;background:#141414e6;color:#f3f0ea;border-radius:8px;max-width:calc(100vw - 32px);box-sizing:border-box;pointer-events:none;display:none;z-index:25}
+  /* 指到作品的名牌 */
+  #tag{position:fixed;left:0;top:0;z-index:24;pointer-events:none;opacity:0;transform:translate(-999px,-999px);padding:7px 12px;border-radius:14px;background:rgba(20,20,22,.78);color:#fff;font-size:13px;letter-spacing:.06em;white-space:nowrap;transition:opacity .25s}
+  #tag.on{opacity:1}
+  /* 風格 3：游標圈圈、聚焦暗角 */
+  #ring{position:fixed;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;border:1.5px solid rgba(255,255,255,.85);mix-blend-mode:difference;pointer-events:none;z-index:26;display:none;transition:width .35s var(--ease),height .35s var(--ease),margin .35s var(--ease),background .25s}
+  #ring.hot{width:78px;height:78px;margin:-39px 0 0 -39px;background:rgba(255,255,255,.18)}
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:10;opacity:0;transition:opacity .9s var(--ease);background:radial-gradient(ellipse at center,rgba(0,0,0,0) 38%,rgba(0,0,0,.62) 100%)}
+  body.v3.inspect #vig{opacity:1}
+  #tourNote{position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));padding:8px 12px;background:#141414dc;color:#f3f0ea;border-radius:8px;font-size:12px;z-index:12;pointer-events:none}
+  .touch.inspect #joy{display:none}
+  #bar button,#realNav button{min-height:44px}
+  #realNav{position:fixed;top:14px;left:14px;display:flex;gap:8px;z-index:25}
+  #realNav button{font:inherit;font-size:14px;padding:10px 18px;border-radius:22px;border:1px solid #ffffff40;background:#141414dc;color:#f3f0ea;cursor:pointer}
+  #realNav button:disabled{cursor:wait;color:#d7d2c8}
+  #realNav button:focus-visible{outline:3px solid #c9a85f;outline-offset:3px}
+  body.inspect #realNav{display:none}
+  #crouch{position:fixed;right:16px;bottom:calc(60px + env(safe-area-inset-bottom));z-index:25;display:flex;flex-direction:column;gap:8px}
+  #crouch button{min-height:44px;font:inherit;font-size:14px;padding:10px 18px;border-radius:22px;border:1px solid #ffffff40;background:#141414dc;color:#f3f0ea;cursor:pointer;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  #crouch button[aria-pressed="true"]{background:#c9a85f;color:#141414}
+  #crouch button:focus-visible{outline:3px solid #c9a85f;outline-offset:3px}
+  body.inspect #crouch{display:none}
+  canvas:focus-visible{outline:3px solid #c9a85f;outline-offset:-4px}
+  @media(max-width:600px){#name{top:76px;left:16px;right:16px;text-align:left;line-height:1.7}#bar{right:14px;flex-wrap:wrap}#bar button{padding:10px 14px}#hint{bottom:calc(170px + env(safe-area-inset-bottom));font-size:13px;width:max-content;max-width:82vw}#tourNote{max-width:calc(100vw - 180px);font-size:11px}}
+  @media (prefers-reduced-motion:reduce){#title span,#intro,#tag,#variant a{transition:none}}
+</style>
+<div id="load" role="status" aria-live="polite">載入展場中…（第一次要幾秒）</div>
+<div id="intro" aria-hidden="true"><div id="title"></div><div id="sub"></div></div>
+<div id="bar"><button id="back">← 回到展場</button><button id="spin">自動旋轉：關</button></div>
+<nav id="realNav" aria-label="真實雕件"><button data-real="3" disabled>雕像1・載入中</button><button data-real="4" disabled>雕像2・載入中</button><button data-real="5" disabled hidden>小貨車・載入中</button><button data-real="6" disabled hidden>雕像3・載入中</button></nav>
+<div id="crouch"><button id="crouchUp" type="button" aria-pressed="false" title="按住慢慢站起（快速鍵：空白鍵）">按住站起 ▲（空白鍵）</button><button id="crouchDn" type="button" aria-pressed="false" title="按住慢慢蹲下（快速鍵：C）">按住蹲下 ▼（C 鍵）</button></div>
+<div id="name" role="status" aria-live="polite"></div>
+<div id="tourNote">本機試作・畫作與展台雕件為示意</div>
+<div id="tag" aria-hidden="true"></div>
+<div id="hint">拖曳看四周　WASD／方向鍵走路　按住 C 蹲下、按住空白鍵站起　點牆上的作品細看　按任一鍵略過開場</div>
+<div id="joy" role="group" aria-label="移動搖桿；也可用方向鍵或 WASD 移動"><div id="knob" aria-hidden="true"></div></div>
+<div id="ring" aria-hidden="true"></div>
+<div id="vig" aria-hidden="true"></div>
+
+<script type="importmap">{"imports":{"three":"./lib/three.module.js","three/addons/":"./lib/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {OBJLoader} from 'three/addons/OBJLoader.js';
+import {OrbitControls} from 'three/addons/OrbitControls.js';
+
+const Q = new URLSearchParams(location.search);
+for (const key of ['truck','dragon','model','ftex','seam']) Q.delete(key);
+const V = Math.min(3, Math.max(1, +Q.get('v') || 2));                       // 樣品風格 1 安靜／2 柔光／3 華麗
+const REDUCE = matchMedia('(prefers-reduced-motion: reduce)').matches || Q.get('rm') === '1';
+const TOUCH = matchMedia('(pointer:coarse)').matches;
+if (TOUCH) document.body.classList.add('touch'); if (V === 3) document.body.classList.add('v3');
+// 視角手感（2026-11-16 番薯：滑鼠移動視角不夠絲滑）。每一項都能用網址關掉、回舊行為對照：
+//   ?old=1＝全部關掉；或單獨關：look=0 轉視角緩衝、sens=old 舊靈敏度（sens=數字＝新靈敏度的倍率）、lowres=1 轉動時也降解析度、cursor=0 手掌游標、ease=0 走路加減速。
+//   系統要求減少動態（REDUCE）時，緩衝與走路加減速自動關閉。
+//   預設（不加參數）＝原版手感（番薯 11/16 15:00：「原版走起來比較順」）；網址加 ?feel=1 才開上面五項新手感，再用單項參數關掉不要的。
+const OLD = Q.get('old') === '1' || Q.get('feel') !== '1', FEEL = k => !OLD && Q.get(k) !== '0';
+const LOOK_SMOOTH = FEEL('look') && !REDUCE, WALK_EASE = FEEL('ease') && !REDUCE, CURSOR_GRAB = FEEL('cursor');
+const SENS_OLD = OLD || Q.get('sens') === 'old', SENS_MUL = +Q.get('sens') || 1, LOWRES_TURN = OLD || Q.get('lowres') === '1';
+// 畫質檔位切換（番薯 11/16 15:09「格數更高、不要卡卡的」）：原版一動就把畫質由清楚檔切到走動檔、停下 0.25 秒又切回，每次切換要重新配置畫布，實測卡 250～620 毫秒（量格數：3 輪走走停停 6 次）。
+// 桌機改成不切檔（慢的機器仍有下面主迴圈的「偏慢自動降一檔」保護）；手機（觸控）沒量過，維持舊行為。?lowres=1 強制切檔（舊行為）、?lowres=0 強制不切。
+const MOVE_DROP = Q.has('lowres') ? Q.get('lowres') !== '0' : TOUCH;
+const LOOK_LAMBDA = +Q.get('look') > 0 ? +Q.get('look') : 14;   // 視角追目標的快慢（THREE.MathUtils.damp 的 lambda；與幀率無關；14＝約 0.21 秒追到 95%）。網址 ?look=數字 可調：越大越跟手、越小越滑（look=0 關閉緩衝）
+
+// ---------- 場地（公尺）：約 20 坪＝9.0×7.3 ≈ 66 平方公尺；天花板暫抓 3.0 ----------
+const CFG = {W: 9.0, D: 7.3, H: 3.0, hangY: 1.45, floatOut: .9, eye: 1.6};
+const {W, D, H} = CFG;
+
+// ---------- 小工具 ----------
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const smooth = t => { t = clamp01(t); return t * t * (3 - 2 * t); };
+const easeOutCubic = t => 1 - Math.pow(1 - clamp01(t), 3);
+const easeOutBack = t => { t = clamp01(t); const c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); };
+function noiseTexture(base, amp, size = 512, repeat = [1, 1], blotch = 0) {
+  const c = document.createElement('canvas'); c.width = c.height = size;
+  const g = c.getContext('2d'); g.fillStyle = base; g.fillRect(0, 0, size, size);
+  const img = g.getImageData(0, 0, size, size);
+  for (let i = 0; i < img.data.length; i += 4) { const n = (Math.random() - .5) * amp; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
+  g.putImageData(img, 0, 0);
+  for (let i = 0; i < blotch; i++) {
+    const x = Math.random() * size, y = Math.random() * size, r = 20 + Math.random() * 90;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r), a = (Math.random() - .5) * .10;
+    gr.addColorStop(0, a > 0 ? `rgba(255,255,255,${a})` : `rgba(0,0,0,${-a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+function woodTexture(repeat) {   // 淺木地板（暫定：參考展多為淺木地板；是否採用待番薯確認）
+  const c = document.createElement('canvas'); c.width = c.height = 1024; const g = c.getContext('2d'), r = rng(7), rows = 8, ph = 1024 / rows;
+  for (let i = 0; i < rows; i++) {
+    let x = -r() * 400;
+    while (x < 1024) {
+      const len = 480 + r() * 420, t = 205 + Math.floor(r() * 20);
+      g.fillStyle = `rgb(${t},${t - 24},${t - 58})`; g.fillRect(x, i * ph, len, ph);
+      g.strokeStyle = 'rgba(120,85,50,.10)'; g.lineWidth = 1;
+      for (let k = 0; k < 9; k++) { const y = i * ph + r() * ph; g.beginPath(); g.moveTo(x, y); g.lineTo(x + len, y + (r() - .5) * 5); g.stroke(); }
+      g.fillStyle = 'rgba(90,60,35,.32)'; g.fillRect(x, i * ph, 2, ph); x += len;
+    }
+    g.fillStyle = 'rgba(90,60,35,.32)'; g.fillRect(0, i * ph, 1024, 2);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(...repeat); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+const PALS = [['#efe6d6', '#c8452f', '#2d3a4a', '#d9a441'], ['#1f2a36', '#e8d9b5', '#c8452f', '#7fa1a0'], ['#e9e2d0', '#3b6a73', '#d98f5a', '#8a2f3a'], ['#d8dfd4', '#4c6b4a', '#e4c56d', '#2a2a2a'],
+  ['#f2e4e0', '#c46a74', '#5a4b7a', '#e8c27a'], ['#c9d6e2', '#1e3550', '#e9b44c', '#a23b3b'], ['#2b2420', '#e6d3a3', '#b5543b', '#6f8f7a'], ['#efece6', '#222222', '#c8452f', '#7a8a8c']];
+function artTexture(seed) {   // 示意畫作：程式畫的抽象色塊，不是真作品
+  const r = rng(seed * 97 + 5), c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), pal = PALS[seed % PALS.length];
+  g.fillStyle = pal[0]; g.fillRect(0, 0, 256, 256);
+  const n = 4 + Math.floor(r() * 4);
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = g.strokeStyle = pal[1 + Math.floor(r() * (pal.length - 1))]; const x = r() * 256, y = r() * 256, s = 30 + r() * 120, k = Math.floor(r() * 4);
+    g.globalAlpha = .75 + r() * .25;
+    if (k === 0) g.fillRect(x - s / 2, y - s / 3, s, s * .66);
+    else if (k === 1) { g.beginPath(); g.arc(x, y, s / 2, 0, Math.PI * 2); g.fill(); }
+    else if (k === 2) { g.lineWidth = 6 + r() * 14; g.beginPath(); g.arc(x, y, s / 2, r() * 6, r() * 6 + 2.4); g.stroke(); }
+    else { g.lineWidth = 5 + r() * 10; g.beginPath(); g.moveTo(x - s / 2, y + (r() - .5) * s); g.lineTo(x + s / 2, y + (r() - .5) * s); g.stroke(); }
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
+// 效能（2026-11-09）：每盞真燈都要算進每個受光材質；牆、展板、天花板、展台粗糙度 .7～1，幾乎沒有鏡面反光，
+// 用 Lambert（只算漫反射）和 Standard（再多算一層 GGX 鏡面）畫面幾乎一樣、但每盞燈的成本低很多。地板、畫框、作品仍用 Standard。網址 lam=0 回原材質對照。
+const LAM = Q.get('lam') !== '0';
+function diffuseMat(o) { if (LAM) { const {roughness, metalness, ...r} = o; return new THREE.MeshLambertMaterial(r); } return new THREE.MeshStandardMaterial(o); }
+// ---------- 渲染器、場景 ----------
+const renderer = new THREE.WebGLRenderer({antialias: Q.get('aa') !== '0', powerPreference: 'high-performance'});
+let idleRatio = +Q.get('pr') || Math.min(devicePixelRatio, TOUCH ? 1.5 : 1.75);   // 停下來時用這一檔；走路、轉動時自動降一檔（見主迴圈）
+const MOVE_RATIO = +Q.get('mr') || (TOUCH ? 1 : 1.25);
+renderer.setPixelRatio(idleRatio);
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = +Q.get('exp') || 1.2; renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const canvas = renderer.domElement;
+const scene = new THREE.Scene(); scene.background = new THREE.Color(0xf1efea);
+const camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.05, 40); camera.rotation.order = 'YXZ'; scene.add(camera);
+
+// ---------- 廳體 ----------
+const floorMat = new THREE.MeshStandardMaterial({map: woodTexture([W / 2.4, D / 2.4]), roughness: V === 3 ? .26 : .42});
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(W, D), floorMat); floor.rotation.x = -Math.PI / 2; scene.add(floor);
+const wallBase = diffuseMat({map: noiseTexture('#f3f0ea', 5, 512, [W / 4, 1.4], 20), roughness: .95});
+const pickBlockers = [];
+function wallPlane(w, h, x, y, z, ry) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), wallBase); m.position.set(x, y, z); m.rotation.y = ry; scene.add(m); pickBlockers.push(m); }
+wallPlane(W, H, 0, H / 2, -D / 2, 0); wallPlane(W, H, 0, H / 2, D / 2, Math.PI); wallPlane(D, H, -W / 2, H / 2, 0, Math.PI / 2); wallPlane(D, H, W / 2, H / 2, 0, -Math.PI / 2);
+const ceil = new THREE.Mesh(new THREE.PlaneGeometry(W, D), diffuseMat({color: 0xf6f4ef, roughness: 1, emissive: 0x6d6b66})); ceil.rotation.x = Math.PI / 2; ceil.position.y = H; scene.add(ceil);
+const skMat = diffuseMat({color: 0xd9d5cd, roughness: .7});
+[[W, .12, .02, 0, -D / 2 + .01], [W, .12, .02, 0, D / 2 - .01]].forEach(([w, h, d, x, z]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), skMat); m.position.set(x, .06, z); scene.add(m); });
+[-W / 2 + .01, W / 2 - .01].forEach(x => { const m = new THREE.Mesh(new THREE.BoxGeometry(.02, .12, D), skMat); m.position.set(x, .06, 0); scene.add(m); });
+scene.add(new THREE.HemisphereLight(0xffffff, 0xd8cfc0, +Q.get('amb') || (V === 1 ? 1.35 : 1.15)));
+
+// 天花板桁架感（風格 2、3；參考 Tramway 展場的白色桁架）
+if (V >= 2) {
+  const beamMat = diffuseMat({color: 0xf4f2ec, roughness: .9});
+  for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.BoxGeometry(.12, .24, D), beamMat); b.position.set(-3.375 + i * 2.25, H - .12, 0); scene.add(b); }
+}
+// 長條柔光（風格 3；參考 Presenhuber 的天花板長條光）
+const stripMats = [];
+if (V === 3) {
+  for (let i = 0; i < 3; i++) { const m = new THREE.MeshBasicMaterial({color: 0xfff3dc}); stripMats.push(m); const s = new THREE.Mesh(new THREE.BoxGeometry(.2, .02, D - 1.4), m); s.position.set(-2.25 + i * 2.25, H - .012, 0); scene.add(s); }
+}
+
+// ---------- 展板（3 組、每組 2 片＝長 2.4、高 2.4，兩面都能掛；數字都是我暫抓） ----------
+const PANEL = {len: 2.4, h: 2.4, t: .05};
+// 2026-11-09 番薯「挨開它」：原本第 3 片展板在正中間（0, 1.3）橫著擋住後牆中央的兩件真作品；改成轉 90 度（和後牆垂直）並移到右邊（x=1.7），
+// 從入口看過去視線不再被擋。網址 panel3=old 回到原本位置對照。
+const P3OLD = Q.get('panel3') === 'old';
+const panels = [{cx: -2.3, cz: -1.1}, {cx: 2.3, cz: -1.1}, P3OLD ? {cx: 0, cz: 1.3} : {cx: 1.7, cz: 1.3, rot: true}];
+const panelMat = diffuseMat({map: noiseTexture('#f7f5f0', 4, 256, [1, 1], 6), roughness: .92});
+const accentMat = diffuseMat({color: 0xc8452f, roughness: .85});   // 風格 3：單一顏色亮點（顏色待番薯決定）
+const obstacles = [];   // 走路碰撞用的方塊 {x0,x1,z0,z1}
+const shadowRects = []; // 接地感：地板上要貼接觸陰影的底座 {x,z,w,d,pad,a}（threejs-lighting 的 Contact shadows 做法）
+panels.forEach((p, i) => {
+  const mats = V === 3 && i === 2 ? [panelMat, panelMat, panelMat, panelMat, accentMat, panelMat] : panelMat;   // BoxGeometry 材質順序：+x -x +y -y +z -z
+  const pw = p.rot ? PANEL.t : PANEL.len, pd = p.rot ? PANEL.len : PANEL.t;   // 轉 90 度的展板：x 方向薄、z 方向長
+  const m = new THREE.Mesh(new THREE.BoxGeometry(pw, PANEL.h, pd), mats); m.position.set(p.cx, PANEL.h / 2, p.cz); scene.add(m); pickBlockers.push(m);
+  obstacles.push({x0: p.cx - pw / 2 - .35, x1: p.cx + pw / 2 + .35, z0: p.cz - pd / 2 - .35, z1: p.cz + pd / 2 + .35});
+  shadowRects.push({x: p.cx, z: p.cz, w: pw, d: pd, pad: .24, a: .40});
+});
+
+// ---------- 展台（長方形粗細各一、圓柱粗細各一、桌子）＋示意雕件 ----------
+const standMat = diffuseMat({color: 0xf2f0ea, roughness: .75});
+const clayMat = new THREE.MeshStandardMaterial({color: 0xcfa98a, roughness: .7});
+const bronzeMat = new THREE.MeshStandardMaterial({color: 0x4a3b30, roughness: .45, metalness: .35});
+const stands = [];
+let sculptureCount = 0;
+function addBox(w, h, d, x, z, top) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), standMat); m.position.set(x, h / 2, z); scene.add(m); pickBlockers.push(m); obstacles.push({x0: x - w / 2 - .35, x1: x + w / 2 + .35, z0: z - d / 2 - .35, z1: z + d / 2 + .35}); stands.push({x, z, h, top}); shadowRects.push({x, z, w, d, pad: .22, a: .52}); }
+function addCyl(r, h, x, z, top) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 40), standMat); m.position.set(x, h / 2, z); scene.add(m); pickBlockers.push(m); obstacles.push({x0: x - r - .35, x1: x + r + .35, z0: z - r - .35, z1: z + r + .35}); stands.push({x, z, h, top}); shadowRects.push({x, z, w: r * 2, d: r * 2, pad: .2, a: .50}); }
+addBox(.45, .95, .45, -3.4, 1.0, 'truck');      // 長方形・粗
+addBox(.25, 1.2, .25, -2.4, 2.4, 'cone');     // 長方形・細
+addCyl(.25, .9, 3.3, 1.2, 'real6');           // 圓柱・粗（11/16 起放真作品「雕像3」，原本的兩件示意雕件拿掉）
+addCyl(.13, 1.15, 2.2, 2.5, 'ico2');          // 圓柱・細
+addCyl(.13, 1.0, -3.3, 3.0, 'cone');          // 圓柱・細（11/9 番薯：「這個錐子真的很擋路」→ 原本在後牆正中間 (0,-2.4)、兩件真作品正前方，移到入口左邊角落）
+// 桌子（1.4×0.7×0.75）
+{
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.4, .04, .7), new THREE.MeshStandardMaterial({color: 0xe9dcc4, roughness: .6})); top.position.set(3.4, .75, -2.7); scene.add(top); pickBlockers.push(top);
+  const legM = new THREE.MeshStandardMaterial({color: 0x1b1b1c, roughness: .5, metalness: .3});
+  [[-.62, -.3], [.62, -.3], [-.62, .3], [.62, .3]].forEach(([dx, dz]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(.04, .73, .04), legM); l.position.set(3.4 + dx, .365, -2.7 + dz); scene.add(l); });
+  obstacles.push({x0: 3.4 - .7 - .35, x1: 3.4 + .7 + .35, z0: -2.7 - .35 - .35, z1: -2.7 + .35 + .35});
+  shadowRects.push({x: 3.4, z: -2.7, w: 1.4, d: .7, pad: .32, a: .28});   // 桌面離地 .75，影子比較淡、比較散
+  const mk = (geo, mat, x, y, z) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); scene.add(m); };
+  mk(new THREE.CylinderGeometry(.06, .09, .22, 24), clayMat, 3.0, .75 + .02 + .11, -2.7);
+  mk(new THREE.SphereGeometry(.1, 24, 16), bronzeMat, 3.4, .75 + .02 + .1, -2.65);
+  mk(new THREE.BoxGeometry(.16, .1, .12), clayMat, 3.8, .75 + .02 + .05, -2.72);
+}
+// 再加一個低的長方形展台（1.2×0.4×0.5）和第二張小桌，放更多示意雕件
+{
+  const low = new THREE.Mesh(new THREE.BoxGeometry(1.2, .5, .4), standMat); low.position.set(-3.5, .25, -2.6); scene.add(low); pickBlockers.push(low);
+  obstacles.push({x0: -3.5 - .6 - .35, x1: -3.5 + .6 + .35, z0: -2.6 - .2 - .35, z1: -2.6 + .2 + .35});
+  shadowRects.push({x: -3.5, z: -2.6, w: 1.2, d: .4, pad: .2, a: .5});
+  stands.push({x: -3.9, z: -2.6, h: .5, top: 'ico2'}, {x: -3.5, z: -2.6, h: .5, top: 'knot'}, {x: -3.1, z: -2.6, h: .5, top: 'cone'});
+  const top2 = new THREE.Mesh(new THREE.BoxGeometry(1.0, .04, .6), new THREE.MeshStandardMaterial({color: 0xe9dcc4, roughness: .6})); top2.position.set(-3.9, .75, -.1); top2.rotation.y = Math.PI / 2; scene.add(top2); pickBlockers.push(top2);
+  const legM2 = new THREE.MeshStandardMaterial({color: 0x1b1b1c, roughness: .5, metalness: .3});
+  [[-.25, -.45], [.25, -.45], [-.25, .45], [.25, .45]].forEach(([dx, dz]) => { const l = new THREE.Mesh(new THREE.BoxGeometry(.04, .73, .04), legM2); l.position.set(-3.9 + dx, .365, -.1 + dz); scene.add(l); });
+  obstacles.push({x0: -3.9 - .3 - .35, x1: -3.9 + .3 + .35, z0: -.1 - .5 - .35, z1: -.1 + .5 + .35});
+  shadowRects.push({x: -3.9, z: -.1, w: .6, d: 1.0, pad: .3, a: .28});
+  stands.push({x: -3.9, z: -.35, h: .77, top: 'knot'}, {x: -3.9, z: .15, h: .77, top: 'ico2'});
+}
+stands.forEach(s => { if (s.top === 'truck' || s.top === 'real6') return;   // 展台上的示意雕件（不是真作品）；大展台放 2 件
+  const mk = (top, dx, dz) => {
+    let geo, mat = clayMat;
+    if (top === 'ico') geo = new THREE.IcosahedronGeometry(.13, 1);
+    else if (top === 'ico2') { geo = new THREE.IcosahedronGeometry(.1, 0); mat = bronzeMat; }
+    else if (top === 'cone') { geo = new THREE.ConeGeometry(.08, .28, 24); mat = bronzeMat; }
+    else geo = new THREE.TorusKnotGeometry(.1, .035, 96, 12);
+    const m = new THREE.Mesh(geo, mat); m.position.set(s.x + dx, s.h + .15, s.z + dz); scene.add(m); sculptureCount++;
+  };
+  const wide = s.h > .8 && s.h < 1 || s.top === 'ico' || s.top === 'knot' && s.h < 1;
+  if (wide && s.h !== .77) { mk(s.top, -.09, 0); mk(s.top === 'ico' ? 'cone' : 'ico2', .1, .03); } else mk(s.top, 0, 0);
+});
+
+// ---------- 接地感：便宜的接觸陰影（2026-11-09；網址加 shadow=0 可關掉對照） ----------
+// 依 threejs-lighting「Contact shadows」：不開陰影貼圖（開了會讓全部材質重編譯、每盞燈多一輪繪製），
+// 用一張中間實、邊緣漸淡的貼圖＋九宮格拉伸；地板與牆面各合併成一個網格＝多 2 次繪製。
+const SHADOW_ON = Q.get('shadow') !== '0';
+const SH = (() => {
+  const N = 64, B = 24, c = document.createElement('canvas'); c.width = c.height = N;
+  const g = c.getContext('2d'), img = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const dx = Math.max(0, B - (x + .5), (x + .5) - (N - B)), dy = Math.max(0, B - (y + .5), (y + .5) - (N - B));
+    img.data[(y * N + x) * 4 + 3] = Math.round(Math.pow(1 - Math.min(1, Math.hypot(dx, dy) / B), 2) * 255);   // 只有透明度，顏色純黑
+  }
+  g.putImageData(img, 0, 0);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter;
+  const mat = new THREE.MeshBasicMaterial({map: tex, vertexColors: true, transparent: true, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, toneMapped: false});
+  return {mat, U: [0, B / N, 1 - B / N, 1]};
+})();
+function slice9(P, T, C, I, map, cx, cy, hw, hh, pad, alpha) {   // 物件本體大小＝實心，往外 pad 公尺漸淡
+  const xs = [cx - hw - pad, cx - hw, cx + hw, cx + hw + pad], ys = [cy - hh - pad, cy - hh, cy + hh, cy + hh + pad], base = P.length / 3;
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) { const p = map(xs[i], ys[j]); P.push(p.x, p.y, p.z); T.push(SH.U[i], SH.U[j]); C.push(0, 0, 0, alpha); }
+  for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const a = base + i * 4 + j, b = a + 4, d = a + 1; I.push(a, b, b + 1, a, b + 1, d); }
+}
+function shadowMesh(P, T, C, I) {
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); geo.setAttribute('uv', new THREE.Float32BufferAttribute(T, 2)); geo.setAttribute('color', new THREE.Float32BufferAttribute(C, 4)); geo.setIndex(I);
+  const m = new THREE.Mesh(geo, SH.mat); m.renderOrder = 1; scene.add(m); return m;
+}
+let floorShadow = null, wallShadow = null; const wallItems = [];
+if (SHADOW_ON && shadowRects.length) {
+  const P = [], T = [], C = [], I = [];
+  for (const r of shadowRects) slice9(P, T, C, I, (x, z) => ({x, y: .003, z}), r.x, r.z, r.w / 2, r.d / 2, r.pad, r.a);
+  floorShadow = shadowMesh(P, T, C, I);
+}
+function addWallShadow(g, f, wc, w, h, o) { g.userData.shadowIdx = wallItems.length; wallItems.push({g, f, wc, w, h, o}); }
+function buildWallShadows() {
+  if (!wallItems.length) return;
+  if (SHADOW_ON) {
+    if (wallShadow) { scene.remove(wallShadow); wallShadow.geometry.dispose(); }
+    const P = [], T = [], C = [], I = [];
+    for (const {f, wc, w, h, o} of wallItems) slice9(P, T, C, I, (lx, ly) => ({x: wc.x + f.tx * lx + f.nx * .0012, y: wc.y + ly, z: wc.z + f.tz * lx + f.nz * .0012}), 0, o.dy, w / 2, h / 2, o.pad, o.a);
+    wallShadow = shadowMesh(P, T, C, I);
+  }
+  buildWorkLights();
+}
+function shadowFade(g) {   // 作品離牆飄出去時，牆上的影子跟著淡掉（不留「鬼影」）
+  const i = g.userData.shadowIdx; if (i === undefined || !wallShadow) return;
+  const a = wallItems[i].o.a * (1 - smooth(g.userData.fp * 3)), col = wallShadow.geometry.attributes.color;
+  for (let k = 0; k < 16; k++) col.array[(i * 16 + k) * 4 + 3] = a; col.needsUpdate = true;
+}
+
+// 燈頭、吊桿、燈面的共用零件（洗牆燈與每件作品的投射燈共用）
+const blackMat = new THREE.MeshStandardMaterial({color: 0x101011, roughness: .5, metalness: .4});
+const lampFaceMat = new THREE.MeshBasicMaterial({color: 0xffe6b8});
+// 燈具尺寸照真實藝廊軌道燈（2026-11-09 查：ERCO Eclipse S 燈頭直徑 6 公分、高 16.5 公分；Parscan 直徑 7.5、長 13.5；iGuzzini Palco 微型 1.9～5.1 公分）：
+// 燈頭直徑約 6.5 公分、長 13 公分，吊桿直徑 1.2 公分（原本燈頭直徑 14 公分、長 20 公分，番薯說「燈太大了」）。
+const canGeo = new THREE.CylinderGeometry(.022, .026, .095, 18).rotateX(Math.PI / 2), faceGeo = new THREE.CircleGeometry(.02, 18), armGeo = new THREE.CylinderGeometry(.004, .004, .3, 8);
+const lampFaceInst = new THREE.MeshBasicMaterial({color: 0xffe6b8, toneMapped: false});   // 每件作品燈面用，開場跟著亮起來
+// ---------- 每件作品一盞投射燈（2026-11-09 番薯：「一個作品一個燈」、要的是天花板那種黑色投射燈，不是小燈條）----------
+// 兩件真作品用真聚光燈（見 addWash 後面）。其餘 116 幅示意畫作若各用真燈，燈數 14→130、速度會掉到個位數（threejs-lighting：每盞燈都算進每個受光材質），
+// 所以每幅畫是「假光」：和洗牆燈同款的黑色燈頭＋吊桿＋發亮燈面（各 1 個 InstancedMesh）、一道朝作品打下來的光柱（InstancedMesh、加法混色）、
+// 牆面與畫面上的一圈圓形光斑（合併成 1 個網格）。網址 lamps=0 關掉對照。
+const LAMP_ON = Q.get('lamps') !== '0', LAMP_MAX = 160, TRACK_SB = Math.min(1.3, Math.max(.6, (H - CFG.hangY) * .577));   // 離牆距離＝(天花板高−作品中心高)×tan30°＝約 .9 公尺   // 離牆距離照藝廊算法：(天花板高 − 作品中心高)×tan30°＝光從 30° 角打下來（避免反光），見 setLamp
+const lampCan = new THREE.InstancedMesh(canGeo, blackMat, LAMP_MAX), lampFace = new THREE.InstancedMesh(faceGeo, lampFaceInst, LAMP_MAX), lampArm = new THREE.InstancedMesh(armGeo, blackMat, LAMP_MAX);
+const beamMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, uniforms: {uCol: {value: new THREE.Color(0xffe2b0)}, uAmt: {value: 0}},
+  vertexShader: `varying float vT; varying vec3 vN; varying vec3 vV; void main(){ vT = 0.5 - position.y; vec4 mv = modelViewMatrix * instanceMatrix * vec4(position,1.0); vN = normalize(normalMatrix * mat3(instanceMatrix) * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform vec3 uCol; uniform float uAmt; varying float vT; varying vec3 vN; varying vec3 vV; void main(){ float f = abs(dot(normalize(vN), normalize(vV))); float a = uAmt * pow(1.0 - clamp(vT,0.0,1.0), 1.4) * smoothstep(0.0, 0.55, f); gl_FragColor = vec4(uCol, a); }`,
+});
+const lampBeam = new THREE.InstancedMesh(new THREE.ConeGeometry(1, 1, 20, 1, true), beamMat, LAMP_MAX);
+const haloTex = (() => {   // 蛋形光斑：中心略偏上、往外柔和漸淡、上面比下面亮（燈從上方斜照牆面的樣子）
+  const N = 64, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d'), img = g.createImageData(N, N);
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const u = (x + .5) / N * 2 - 1, v = (y + .5) / N * 2 - 1, r2 = u * u + (v + .12) * (v + .12), i = (y * N + x) * 4; img.data[i] = img.data[i + 1] = img.data[i + 2] = 255; img.data[i + 3] = Math.round(255 * Math.pow(Math.max(0, 1 - r2), 2) * (1 - .3 * v)); }
+  g.putImageData(img, 0, 0); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; return t;
+})();
+const haloMat = new THREE.MeshBasicMaterial({map: haloTex, vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3, toneMapped: false});
+let haloMesh = null;
+const LAMPS = [lampCan, lampFace, lampArm, lampBeam];
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _p = new THREE.Vector3(), _s = new THREE.Vector3(), _fix = new THREE.Vector3(), _aim = new THREE.Vector3(), _d = new THREE.Vector3(), _Y = new THREE.Vector3(0, 1, 0);
+function setLamp(i, it, k) {   // k：0～1，作品飄離牆面時縮到 0；真作品有自己的真燈，這裡不放
+  const {f, wc, o} = it, r = Math.max(o.fw, o.fh) * .6 + .05;
+  _fix.set(wc.x + f.nx * TRACK_SB, H - .325, wc.z + f.nz * TRACK_SB); _aim.copy(wc);   // 同一面牆的燈都在同一條軌道上，只是各自瞄準自己的作品
+  _m.lookAt(_aim, _fix, _Y); _q.setFromRotationMatrix(_m); _d.copy(_aim).sub(_fix).normalize();
+  _s.setScalar(k); lampCan.setMatrixAt(i, _m.compose(_fix, _q, _s));
+  _p.copy(_fix).addScaledVector(_d, .0485 * k); lampFace.setMatrixAt(i, _m.compose(_p, _q, _s));
+  _p.set(_fix.x, H - .29, _fix.z); _s.set(k, k * .23, k); lampArm.setMatrixAt(i, _m.compose(_p, _q.identity(), _s));   // 吊桿：從軌道（H−.255）到燈頭（H−.325）（11/9 修：這行先前被誤放進註解，118 根吊桿沒擺位置、全疊在地板正中央變成一根黑棍）
+  const dist = _fix.distanceTo(_aim); _p.copy(_fix).add(_aim).multiplyScalar(.5); _q.setFromUnitVectors(_Y, _d.negate()); _s.set(r * k, dist * k, r * k); lampBeam.setMatrixAt(i, _m.compose(_p, _q, _s));
+}
+// 細軌道（每面牆、每片展板各一條，離牆 TRACK_SB）＋吊桿：軌道貼在桁架下緣（H−.255），每 1.2 公尺一根吊桿吊在天花板。
+let tracksBuilt = false;
+function buildTracks() {
+  if (tracksBuilt) return; tracksBuilt = true;
+  const rods = [], tm = new THREE.InstancedMesh(new THREE.BoxGeometry(1, .02, .03), blackMat, faces.length), m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), s4 = new THREE.Vector3(), p4 = new THREE.Vector3();
+  faces.forEach((f, i) => {
+    const len = f.L - .6, cx = f.px + f.tx * f.L / 2 + f.nx * TRACK_SB, cz = f.pz + f.tz * f.L / 2 + f.nz * TRACK_SB;
+    q4.setFromAxisAngle(_Y, -Math.atan2(f.tz, f.tx)); tm.setMatrixAt(i, m4.compose(p4.set(cx, H - .255, cz), q4, s4.set(len, 1, 1)));
+    for (let t = -len / 2; t <= len / 2 + .01; t += Math.max(.6, len / Math.ceil(len / 1.2))) rods.push([cx + f.tx * t, cz + f.tz * t]);
+  });
+  const rm = new THREE.InstancedMesh(new THREE.CylinderGeometry(.004, .004, .255, 6), blackMat, rods.length); rods.forEach(([x, z], i) => rm.setMatrixAt(i, m4.compose(p4.set(x, H - .1275, z), q4.identity(), s4.set(1, 1, 1))));
+  tm.frustumCulled = rm.frustumCulled = false; scene.add(tm, rm);
+}
+function buildWorkLights() {
+  if (!LAMP_ON) return;
+  buildTracks();
+  const n = Math.min(wallItems.length, LAMP_MAX);
+  for (let i = 0; i < n; i++) setLamp(i, wallItems[i], 1 - smooth(wallItems[i].g.userData.fp * 3));
+  for (const m of LAMPS) { m.count = n; m.instanceMatrix.needsUpdate = true; if (!m.parent) { m.frustumCulled = false; scene.add(m); } }
+  lampBeam.visible = Q.get('lampbeam') !== '0'; for (const m of [lampCan, lampFace, lampArm]) m.visible = Q.get('lampcan') !== '0';   // 診斷用：分別關掉光柱／燈頭／光斑量成本
+  if (haloMesh) { scene.remove(haloMesh); haloMesh.geometry.dispose(); }
+  const P = [], T = [], C = [], I = [];
+  const quad = (it, off, hw, hh, a) => {
+    const {f, wc} = it, base = P.length / 3, k = 1 - smooth(it.g.userData.fp * 3);
+    for (const [lx, ly, u, v] of [[-hw, hh, 0, 1], [hw, hh, 1, 1], [hw, -hh, 1, 0], [-hw, -hh, 0, 0]]) { P.push(wc.x + f.tx * lx + f.nx * off, wc.y + ly, wc.z + f.tz * lx + f.nz * off); T.push(u, v); C.push(1, .92, .74, a * k); }
+    I.push(base, base + 1, base + 2, base, base + 2, base + 3);
+  };
+  for (let i = 0; i < n; i++) {
+    const it = wallItems[i], w = it.o.fw, h = it.o.fh, real = !!it.o.real; it.ha = real ? [0, 0] : [.10, .04];
+    quad(it, .0016, w * .7 + .16, h * .85 + .26, it.ha[0]);   // 牆面上的蛋形光斑（比作品大一圈、偏高）
+    quad(it, .0357, w / 2, h / 2, it.ha[1]);                    // 畫面上的反光（中心較亮）
+  }
+  haloMesh = new THREE.Mesh(new THREE.BufferGeometry(), haloMat); const g = haloMesh.geometry;
+  g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(T, 2)); g.setAttribute('color', new THREE.Float32BufferAttribute(C, 4)); g.setIndex(I);
+  haloMesh.renderOrder = 3; haloMesh.visible = Q.get('lamphalo') !== '0'; scene.add(haloMesh);
+}
+function lampFade(g) {
+  const i = g.userData.shadowIdx; if (!LAMP_ON || i === undefined || i >= LAMP_MAX || !haloMesh) return;
+  const it = wallItems[i], k = 1 - smooth(g.userData.fp * 3), col = haloMesh.geometry.attributes.color;
+  setLamp(i, it, k); for (const m of LAMPS) m.instanceMatrix.needsUpdate = true;
+  for (let v = 0; v < 8; v++) col.array[(i * 8 + v) * 4 + 3] = it.ha[v < 4 ? 0 : 1] * k; col.needsUpdate = true;
+}
+
+// ---------- 掛作品的面：四面牆＋展板兩面 ----------
+const faces = [];
+function addFace(px, pz, tx, tz, nx, nz, L, skip, seed) { faces.push({px, pz, tx, tz, nx, nz, rotY: Math.atan2(nx, nz), L, skip: skip || [], seed}); }
+addFace(-W / 2, -D / 2, 1, 0, 0, 1, W, [[3.5, 5.5]], 11);        // 後牆（中間留給兩件真作品）
+addFace(W / 2, -D / 2, 0, 1, -1, 0, D, [], 12);                  // 右牆
+addFace(W / 2, D / 2, -1, 0, 0, -1, W, [[3.7, 5.3]], 13);        // 前牆（中間留入口）
+addFace(-W / 2, D / 2, 0, -1, 1, 0, D, [], 14);                  // 左牆
+panels.forEach((p, i) => {
+  if (p.rot) {   // 轉 90 度：朝 +x 的面由 z 大往 z 小排，朝 -x 的面相反
+    addFace(p.cx + PANEL.t / 2, p.cz + PANEL.len / 2, 0, -1, 1, 0, PANEL.len, [], 20 + i * 2);
+    addFace(p.cx - PANEL.t / 2, p.cz - PANEL.len / 2, 0, 1, -1, 0, PANEL.len, [], 21 + i * 2);
+  } else {
+    addFace(p.cx - PANEL.len / 2, p.cz + PANEL.t / 2, 1, 0, 0, 1, PANEL.len, [], 20 + i * 2);
+    addFace(p.cx + PANEL.len / 2, p.cz - PANEL.t / 2, -1, 0, 0, -1, PANEL.len, [], 21 + i * 2);
+  }
+});
+const SZ = [[.18, .24], [.24, .18], [.3, .4], [.4, .3], [.2, .2], [.5, .65], [.35, .45], [.15, .2], [.6, .4], [.28, .28]];
+const FRAMES = [0xf4f1ea, 0x1b1b1c, 0xb58a5a, 0xd8cfc0];
+const artTex = Array.from({length: 12}, (_, i) => artTexture(i));
+const heroGroups = [], pickables = [];
+const realButtons = [...document.querySelectorAll('#realNav button')];
+const noInspect = g => !!g.userData.real && (g.userData.n === 5 || g.userData.n === 6);   // 小貨車、雕像3 底部沒拍到，不給客人近看，只放展台上遠看（小貨車：番薯 11/16 指定；雕像3：照小貨車同一做法，待番薯確認）
+for (const b of realButtons) b.onclick = () => { if (b.work && state === 'walk') enterInspect(b.work); };
+let workCount = 0;
+const ROWS = [{y: 1.62, hmax: .65, off: 0}, {y: .86, hmax: .4, off: 100}];   // 上下兩排（上排大件、下排小件），為了放進一百多件
+faces.forEach(f => ROWS.forEach(row => {
+  const r = rng(f.seed + row.off), SZr = SZ.filter(z => z[1] <= row.hmax);
+  let s = .45;
+  while (s < f.L - .4) {
+    const gn = 2 + Math.floor(r() * 4), gy = row.y + (r() - .5) * .08;   // 一組 2～5 件
+    for (let k = 0; k < gn; k++) {
+      const [w, h] = SZr[Math.floor(r() * SZr.length)];
+      for (const [a, b] of f.skip) if (s < b && s + w > a) s = b + .35;
+      if (s + w > f.L - .4) break;
+      const sc = s + w / 2, x = f.px + f.tx * sc, z = f.pz + f.tz * sc;
+      const g = new THREE.Group();
+      const fm = new THREE.Mesh(new THREE.BoxGeometry(w + .04, h + .04, .03), new THREE.MeshStandardMaterial({color: FRAMES[Math.floor(r() * FRAMES.length)], roughness: .6}));
+      const am = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({map: artTex[Math.floor(r() * artTex.length)], roughness: .8})); am.position.z = .0162;
+      g.add(fm, am);
+      const nrm = new THREE.Vector3(f.nx, 0, f.nz), wc = new THREE.Vector3(x, gy, z), dd = .03;
+      g.position.copy(wc).addScaledVector(nrm, dd / 2 + .004); g.rotation.y = f.rotY; scene.add(g);
+      workCount++;
+      g.userData = {n: workCount, name: `示意畫作 ${String(workCount).padStart(2, '0')}`, wallPos: g.position.clone(), floatPos: g.position.clone().addScaledVector(nrm, CFG.floatOut), normal: nrm, wallCenter: wc.clone(),
+        floatCenter: wc.clone().addScaledVector(nrm, CFG.floatOut + dd / 2 + .004), fp: 0, target: 0};
+      [fm, am].forEach(m => { m.userData.hero = g; pickables.push(m); });
+      heroGroups.push(g);
+      addWallShadow(g, f, wc, w + .04, h + .04, {pad: .035, a: .30, dy: -.014, fw: w, fh: h});
+      s += w + .12;
+    }
+    s += .7;   // 組與組之間留空
+  }
+}));
+buildWallShadows();
+console.log('[樣品] 示意畫作數', workCount, '示意雕件（展台、桌上）數', sculptureCount);
+
+// ---------- 燈：天花板軌道＋壁面洗牆燈 ----------
+const shaftMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide,
+  uniforms: {uCol: {value: new THREE.Color(0xffe2b0)}, uAmt: {value: V === 3 ? .06 : .045}},
+  vertexShader: `varying float vT; varying vec3 vN; varying vec3 vV; void main(){ vT = 0.5 - position.y; vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+  fragmentShader: `uniform vec3 uCol; uniform float uAmt; varying float vT; varying vec3 vN; varying vec3 vV; void main(){ float f = abs(dot(normalize(vN), normalize(vV))); float a = uAmt * pow(1.0 - clamp(vT,0.0,1.0), 1.6) * smoothstep(0.0, 0.55, f); gl_FragColor = vec4(uCol, a); }`,
+});
+const railMat = new THREE.MeshStandardMaterial({color: 0x0c0c0d, roughness: .5, metalness: .5});
+// 2026-11-09 番薯：「再小、燈再更自然」。看得見的燈改成「每件作品一盞小投射燈掛在貼天花板的細軌道上」（見下面 buildWorkLights），
+// 原本 14 盞洗牆燈的大燈具、粗軌道、光錐改成預設不顯示（燈光本身照舊，只是不畫燈具）。網址 oldlamps=1 可把舊的畫回來對照。
+const SHOW_OLD = Q.get('oldlamps') === '1';
+if (SHOW_OLD) [[W - 1.2, .06, 0, -D / 2 + 1.5], [W - 1.2, .06, 0, D / 2 - 1.5], [.06, D - 1.2, -W / 2 + 1.5, 0], [.06, D - 1.2, W / 2 - 1.5, 0]].forEach(([rw, rd, rx, rz]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(rw, .04, rd), railMat); m.position.set(rx, H - .02, rz); scene.add(m); });
+const lights = [];   // {spot, base, delay}
+// 逐件照明（2026-11-09，番薯硬性要求「每幅作品都要有燈照到」）：驗證_逐件照明_20261109.js 算出原本 14 盞燈有 14 件畫作／真作品＋5 件展台雕件
+// 的射燈直接光不到環境光的一半。加燈會讓速度掉一半以上（21 盞：145→63 格，見 2026-11-09_展場_接地感補燈效能對照.json），所以不加燈，
+// 只把「光錐」加寬（半角 .82→1.15 弧度、柔邊 1→.5）並把強度降到 70%，燈具位置、數量、外觀都不動。網址加 wash=0 回到原本光錐對照。
+const WASH = Q.get('wash') === '0' ? {angle: .82, pen: 1, k: 1} : {angle: 1.15, pen: .5, k: .7};
+function addWash(px, pz, nx, nz, tx, tz, base, o) {   // o：可覆蓋光錐 {angle, pen, k}（真作品專屬燈用）   // 在 (px,pz) 牆面點前方 1.5 公尺掛一盞燈，斜照該點
+  const fix = o?.fix ? o.fix.clone() : new THREE.Vector3(px + nx * 1.5, H - .32, pz + nz * 1.5), aim = new THREE.Vector3(px, CFG.hangY + .05, pz);
+  const spot = new THREE.SpotLight(0xfff0dc, 0, 0, o?.angle ?? WASH.angle, o?.pen ?? WASH.pen, 2); spot.position.copy(fix); spot.target.position.copy(aim); scene.add(spot, spot.target);
+  const timed = {spot, base: base * (o?.k ?? WASH.k), delay: lights.length * .13}; lights.push(timed);
+  if (!SHOW_OLD) { timed.face = lampFaceMat.clone(); return; }   // 不畫燈具、光柱：只留燈光（開場亮燈時間軸要的 face 給個沒加進場景的假材質）
+  const arm = new THREE.Mesh(armGeo, blackMat); arm.position.set(fix.x, H - .15, fix.z); scene.add(arm);
+  const lamp = new THREE.Group(); lamp.position.copy(fix); lamp.add(new THREE.Mesh(canGeo, blackMat)); const face = new THREE.Mesh(faceGeo, lampFaceMat.clone()); face.position.z = .066; lamp.add(face); lamp.lookAt(aim); scene.add(lamp); timed.face = face.material;
+  if (V >= 2) {
+    const dist = fix.distanceTo(aim), cone = new THREE.Mesh(new THREE.ConeGeometry(Math.tan(.13) * dist, 1, 24, 1, true), shaftMat.clone()); timed.shaft = cone.material; timed.shaftAmount = shaftMat.uniforms.uAmt.value;
+    cone.scale.y = dist; cone.position.copy(fix).add(aim).multiplyScalar(.5); cone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), fix.clone().sub(aim).normalize()); scene.add(cone);
+  }
+}
+faces.forEach(f => {   // 長面 2 盞、短面（展板）1 盞
+  const n = f.L > 5 ? 2 : 1;
+  for (let i = 0; i < n; i++) { const s = f.L * (i + .5) / n; addWash(f.px + f.tx * s, f.pz + f.tz * s, f.nx, f.nz, f.tx, f.tz, f.L > 5 ? 9 : 7.5); }
+});
+// 兩件真作品「一個作品一個燈」（2026-11-09 番薯要求）：雕件1（x=-.4）、作品2（x=.4）各一盞專屬真聚光燈，窄光錐只打自己；
+// 一開始就建好（燈數在載入前就定了，不會等作品載入完才加燈造成卡頓）。網址 realspot=0 關掉對照。
+if (Q.get('realspot') !== '0') [-.4, .4].forEach(x => addWash(x, -D / 2, 0, 1, 1, 0, 14, {angle: .2, pen: 1, k: 1, fix: new THREE.Vector3(x, H - .325, -D / 2 + .9)}));   // 位置與每件作品的小燈同一條軌道（離牆 .9 公尺）
+// 風格 2、3：指到作品時，一盞聚光燈亮起來（淡出→搬過去→淡入）
+const truckSpot = new THREE.SpotLight(0xfff0dc, 14, 0, .26, 1, 2); truckSpot.name='truckSpot'; truckSpot.position.set(-3.4,H-.325,1.5); truckSpot.target.position.set(-3.4,1.09,1); scene.add(truckSpot,truckSpot.target);
+const truckLamp=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.095,16),new THREE.MeshStandardMaterial({color:0x171717,roughness:.7}));truckLamp.position.copy(truckSpot.position);truckLamp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),truckSpot.target.position.clone().sub(truckSpot.position).normalize());scene.add(truckLamp);
+// 雕像3（新雕件）專屬燈：照小貨車那盞的做法，從走道這邊斜上方打在展台上的作品（番薯硬性要求「每件作品都要有燈照到」）。網址 sspot=0 關掉對照
+if (Q.get('sspot') !== '0') {
+  const sSpot = new THREE.SpotLight(0xfff0dc, 14, 0, .26, 1, 2); sSpot.name = 'sculpt3Spot'; sSpot.position.set(2.7, H - .325, 1.9); sSpot.target.position.set(3.3, 1.01, 1.2); scene.add(sSpot, sSpot.target);
+  const sLamp = new THREE.Mesh(new THREE.CylinderGeometry(.022, .022, .095, 16), new THREE.MeshStandardMaterial({color: 0x171717, roughness: .7})); sLamp.position.copy(sSpot.position); sLamp.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), sSpot.target.position.clone().sub(sSpot.position).normalize()); scene.add(sLamp);
+}
+const focus = new THREE.SpotLight(0xfff0dc, 0, 0, .2, .8, 2); scene.add(focus, focus.target);
+const fState = {slot: null, level: 0};
+let hovered = null;
+function updateFocus(dt) {
+  if (V === 1) return;
+  const want = hovered && state === 'walk' ? hovered : null;
+  if (want !== fState.slot) {
+    fState.level = Math.max(0, fState.level - dt * 6);
+    if (fState.level <= 0) { fState.slot = want; if (want) { const u = want.userData; focus.position.copy(u.wallCenter).addScaledVector(u.normal, 1.3); focus.position.y = H - .2; focus.target.position.copy(u.wallCenter); } }
+  } else if (want) fState.level = Math.min(1, fState.level + dt * 5);
+  focus.intensity = (V === 3 ? 20 : 13) * fState.level;
+}
+
+// ---------- 塵粒（風格 2、3） ----------
+let dust = null;
+if (V >= 2 && !REDUCE) {
+  const N = V === 3 ? 360 : 220, pos = new Float32Array(N * 3), seed = rng(3);
+  for (let i = 0; i < N; i++) { pos[i * 3] = (seed() - .5) * (W - 1); pos[i * 3 + 1] = .3 + seed() * (H - .5); pos[i * 3 + 2] = (seed() - .5) * (D - 1); }
+  const c = document.createElement('canvas'); c.width = c.height = 32; const g = c.getContext('2d'), gr = g.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, 'rgba(255,240,215,1)'); gr.addColorStop(1, 'rgba(255,240,215,0)'); g.fillStyle = gr; g.fillRect(0, 0, 32, 32);
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  dust = new THREE.Points(geo, new THREE.PointsMaterial({map: new THREE.CanvasTexture(c), size: .022, transparent: true, opacity: .4, depthWrite: false, blending: THREE.AdditiveBlending}));
+  scene.add(dust);
+}
+
+// ---------- 真作品（雕件、作品2）：沿用展場主檔的載入方式 ----------
+const mgr = new THREE.LoadingManager();
+const hintEl = document.getElementById('hint');
+const hintText = TOUCH ? '左下搖桿走路・空白處拖曳看四周・點作品細看・右下按鈕按住蹲下／按住站起' : hintEl.textContent;
+hintEl.textContent = '真作品載入中…（展場可以先逛）';
+let loaded = false;
+const assetErrors = [];
+mgr.onError = url => { assetErrors.push(url); for (const b of realButtons) { const work = REAL.find(w => w.no === +b.dataset.real); if (new URL(url, location.href).pathname.startsWith(new URL(work.dir, location.href).pathname)) { b.failed = true; b.textContent = (work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`); } } hintEl.textContent = '部分真作品載入失敗，請重新整理；示意展場仍可操作'; hintEl.style.opacity = 1; };
+mgr.onProgress = (url, done, total) => { if (!assetErrors.length) hintEl.textContent = `真作品載入中 ${done}／${total}（展場可以先逛）`; };
+mgr.onLoad = () => { loaded = true; window.__ready = assetErrors.length === 0; window.__assetsSettled = true; if (onAssetsSettled) onAssetsSettled(); if (!assetErrors.length) hintEl.textContent = hintText; console.log('[展場] 真作品資源結束', {ready: window.__ready, errors: assetErrors.length, ms: Math.round(performance.now())}); };
+const TRUCK_FLAT = Q.get('truck') === 'flat';   // ?truck=flat：試看「底部平切」版小貨車（切掉最低 12 公釐，高 .268）；沒加參數＝原模型
+const TRUCK_AO = Q.get('truck') === 'ao';       // ?truck=ao：試看「車底漸暗」版（不動模型、不下陷，最低 AO_H 公尺內由暗漸變回原色，像貼地陰影）；?ao=數字 可調最暗亮度（預設 .3）、?aoh=公尺 可調高度（預設 .016）
+const AO_MIN = Q.get('ao') !== null ? +Q.get('ao') : .3, AO_H = Q.get('aoh') !== null ? +Q.get('aoh') : .016;
+const REAL = [
+  {no: 5, name: '小貨車（試轉版・細桿待修）', dir: '../作品3_小貨車/', model: TRUCK_FLAT ? 'truck_flatcut.glb' : Q.get('truck') === 'belly' ? 'truck_belly_clean.glb' : Q.get('truck') === 'old' ? 'truck_clean_v2.glb' : '重建_20261117_遮罩版/truck_masked_web.glb', dims: [.375, TRUCK_FLAT ? .268 : .28, .235], tilt: 0, s: 0, stand: [-3.4,.95,1.0]},   // y 回 .95＝貼在展台頂（番薯 11/16 試過沉 2 公分，12:42 說不要下沈，已取消）
+  {no: 6, name: '雕像3（試轉版・名稱待定）', dir: '../作品4_新雕件/', model: Q.get('dragon') === 'old' ? 'sculpture3.glb' : '重建_20261117_遮罩版/sculpture3_masked_web.glb', dims: Q.get('dragon') === 'old' ? [.2327034, .2252663, .2094816] : [.2325209, .2285006, .2094487], tilt: 0, s: 0, stand: [3.3, .9, 1.2]},   // 11/17 劍龍換成「遮罩重建＋Blender 轉檔」新版（舊版貼圖座標被弄亂、表面是漩渦花紋；網址 ?dragon=old 可看舊版對照，改前備份 index_換新劍龍前備份_20261117.html）。11/16 新雕件：dims＝GLB 實際包圍盒（已依番薯實量縮放、轉 -50° 朝向走道，看 作品4_新雕件/sculpture3.report.json）；底部開口沒補面，所以不給近看
+  {no: 3, name: '雕件（試作）', dir: '../雕件試做/viewer/', dims: [0.155, 0.285, 0.09], tilt: 9, s: 4.1},
+  {no: 4, name: '作品2', dir: '../作品2_藍鳥/第3次_高精細/', dims: [0.155, 0.293, 0.093], tilt: 0, model: Q.get('model') || 'bluebird_closed_v2.glb', rawMaterial: true, frontTex: Q.get('ftex') || 'front/tex.jpg', extraTextures: {back: 'back/tex.jpg', seam: Q.get('seam') || 'seam_v2.webp'}, normals: {front: 'front/normal.png', back: 'back/normal.png'}, s: 4.9},
+];
+REAL.forEach(work => {
+  const isGLB = /\.glb(?:$|\?)/i.test(work.model || ''), partMaterials = {};
+  let mat = null;
+  if (!isGLB) {
+  const tex = new THREE.TextureLoader(mgr).load(work.dir + (work.frontTex || 'tex.jpg')); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  mat = new THREE.MeshStandardMaterial({map: tex, roughness: .8, metalness: 0, side: THREE.DoubleSide, color: new THREE.Color().setScalar(work.rawMaterial ? 1 : 1.15)});
+  const loadNormal = file => { const nm = new THREE.TextureLoader(mgr).load(work.dir + file); nm.colorSpace = THREE.NoColorSpace; nm.anisotropy = 8; return nm; };
+  if (work.normals && work.normals.front) mat.normalMap = loadNormal(work.normals.front);
+  Object.entries(work.extraTextures || {}).forEach(([name, file]) => {
+    const map = new THREE.TextureLoader(mgr).load(work.dir + file); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = 8;
+    const material = mat.clone(); material.map = map; material.polygonOffset = true; material.polygonOffsetFactor = 2; material.polygonOffsetUnits = 2;
+    material.normalMap = work.normals && work.normals[name] ? loadNormal(work.normals[name]) : null;
+    if (name === 'seam') { material.map.wrapS = THREE.RepeatWrapping; material.polygonOffset = false; }
+    partMaterials[name] = material;
+  });
+  }
+  const mount = obj => {
+    const parts = [], bb = new THREE.Box3();
+    obj.updateMatrixWorld(true);
+    obj.traverse(m => {
+      if (!m.isMesh || m.name === 'liner') return; // Never insert a liner to conceal holes.
+      const geo = isGLB ? m.geometry.clone().applyMatrix4(m.matrixWorld) : m.geometry;
+      if (!geo.attributes.normal) geo.computeVertexNormals(); geo.rotateY(work.tilt * Math.PI / 180); geo.computeBoundingBox(); bb.union(geo.boundingBox);
+      let material = partMaterials[m.name] || mat;
+      if (isGLB) { material = m.material.clone(); if (material.map) material.map.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy()); }
+      if (isGLB && work.no === 5 && TRUCK_AO) {   // 車底漸暗：只改顏色，不動頂點（物件座標 y 換算成離車底的公尺數）
+        const minY = bb.min.y, sy = work.dims[1] / (bb.max.y - bb.min.y);
+        material.onBeforeCompile = sh => {
+          sh.uniforms.uMinY = {value: minY}; sh.uniforms.uSY = {value: sy}; sh.uniforms.uAoMin = {value: AO_MIN}; sh.uniforms.uAoH = {value: AO_H};
+          sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nvarying float vH; uniform float uMinY; uniform float uSY;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvH = (position.y - uMinY) * uSY;');
+          sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nvarying float vH; uniform float uAoMin; uniform float uAoH;').replace('#include <dithering_fragment>', 'gl_FragColor.rgb *= mix(uAoMin, 1.0, smoothstep(0.0, uAoH, vH));\n#include <dithering_fragment>');
+        };
+        material.customProgramCacheKey = () => 'truck-ao';
+      }
+      parts.push({geo, material, name: m.name});
+    });
+    if (bb.isEmpty()) throw new Error('作品沒有可用的網格');
+    const mw = bb.max.x - bb.min.x, mh = bb.max.y - bb.min.y, md = bb.max.z - bb.min.z, [dw, dh, dd] = work.dims, sc3 = new THREE.Vector3(dw / mw, dh / mh, dd / md);
+    const f = faces[0], x = f.px + f.tx * work.s, z = f.pz + f.tz * work.s, nrm = new THREE.Vector3(f.nx, 0, f.nz);
+    const g = new THREE.Group();
+    parts.forEach(({geo, material, name}) => { const m = new THREE.Mesh(geo, material); m.name = name; m.position.set(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); g.add(m); m.userData.hero = g; pickables.push(m); });
+    g.scale.copy(sc3);
+    const wallPos = new THREE.Vector3(x, CFG.hangY - dh / 2, z).addScaledVector(nrm, dd / 2 + .004);
+    g.position.copy(wallPos); g.rotation.y = f.rotY; scene.add(g);
+    const wc = new THREE.Vector3(x, CFG.hangY, z);
+    if (work.stand) { wallPos.set(...work.stand); g.position.copy(wallPos); g.rotation.y = 0; wc.set(work.stand[0], work.stand[1]+dh/2, work.stand[2]); }
+    g.userData = {n: work.no, real: true, name: work.name, wallPos, floatPos: wallPos.clone().addScaledVector(nrm, CFG.floatOut), normal: nrm, wallCenter: wc.clone(),
+      floatCenter: wc.clone().addScaledVector(nrm, CFG.floatOut + dd / 2 + .004), fp: 0, target: 0};
+    heroGroups.push(g);
+    if (work.no === 5 && TRUCK_AO && SHADOW_ON) {   // 展台頂在車底下加一小塊柔邊暗影（y＝展台頂＋1.5 公釐）：車底毛邊縫隙看到的是暗影，不是白展台
+      const P = [], T = [], C = [], I = [], cx = work.stand[0], cz = work.stand[2], sy = work.stand[1] + .0015;
+      slice9(P, T, C, I, (x, z) => ({x, y: sy, z}), cx, cz, dw * .5 * .86, dd * .5 * .86, .035, +(Q.get('aoa') || .6));
+      shadowMesh(P, T, C, I);
+    }
+    if (!work.stand) addWallShadow(g, f, wc, dw * .62, dh * .62, {pad: .09, a: .34, dy: -.03, fw: dw, fh: dh, real: true}); buildWallShadows();   // 真作品形狀不規則：影子縮成柔和的一團，不畫成方塊
+    const button = realButtons.find(b => +b.dataset.real === work.no); button.work = g; button.textContent = button.failed ? (work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`) : (work.no === 5 ? '近看小貨車' : work.no === 6 ? '近看雕像3' : work.no === 3 ? '雕件1 ↗' : '雕件2 ↗');
+  };
+  if (isGLB) {
+    // Keep LoadingManager pending while the matching r160 loader/decoder imports.
+    // The GLB owns its textures: do not also fetch the old OBJ's full-size maps.
+    const dependency = work.dir + '__gltf_runtime__'; mgr.itemStart(dependency);
+    Promise.all([import('../作品2_藍鳥/viewer/GLTFLoader.js'), import('../作品2_藍鳥/viewer/meshopt_decoder.module.js')])
+      .then(([{GLTFLoader}, {MeshoptDecoder}]) => new GLTFLoader(mgr).setMeshoptDecoder(MeshoptDecoder).loadAsync(work.dir + work.model))
+      .then(gltf => mount(gltf.scene))
+      .catch(error => { mgr.itemError(dependency); console.error('[展場] 真作品載入失敗', error); })
+      .finally(() => mgr.itemEnd(dependency));
+  } else new OBJLoader(mgr).load(work.dir + (work.model || 'model.obj'), mount, undefined, error => { hintEl.textContent = '真作品載入失敗，請重新整理；示意展場仍可操作'; hintEl.style.opacity = 1; });
+});
+
+// ---------- 走路、視角 ----------
+const joy = {x: 0, y: 0, id: null};
+const joyEl = document.getElementById('joy'), knob = document.getElementById('knob');
+joyEl.addEventListener('pointerdown', e => { if (state !== 'walk' && state !== 'intro') return; skipIntro(); joy.id = e.pointerId; joyEl.setPointerCapture(e.pointerId); moveJoy(e); });
+joyEl.addEventListener('pointermove', e => { if (e.pointerId === joy.id) moveJoy(e); });
+const endJoy = e => { if (e.pointerId === joy.id) { joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; } };
+joyEl.addEventListener('pointerup', endJoy); joyEl.addEventListener('pointercancel', endJoy); joyEl.addEventListener('lostpointercapture', endJoy);
+function moveJoy(e) {
+  const r = joyEl.getBoundingClientRect();
+  let dx = (e.clientX - r.left - r.width / 2) / 45, dy = (e.clientY - r.top - r.height / 2) / 45;
+  const l = Math.hypot(dx, dy); if (l > 1) { dx /= l; dy /= l; }
+  joy.x = dx; joy.y = dy; knob.style.transform = `translate(${dx * 35}px,${dy * 35}px)`;
+}
+let yaw = (+Q.get('yaw') || 0) * Math.PI / 180, pitch = (+Q.get('pitch') || 0) * Math.PI / 180;
+let yawT = yaw, pitchT = pitch;   // 滑鼠／方向鍵改的是「目標角度」；畫面用的 yaw／pitch 每幀追過去（緩衝）。LOOK_SMOOTH 關閉時兩者相等＝舊行為
+const pos = new THREE.Vector3(Q.get('x') !== null ? +Q.get('x') : 0, CFG.eye, Q.get('z') !== null ? +Q.get('z') : 3.2);
+const keys = {}; let state = 'intro', drag = null;
+const vel = {x: 0, z: 0};   // 走路速度（公尺／秒）：WALK_EASE 時往目標速度追，起步有加速、放開有短減速
+const VFOV = camera.fov * Math.PI / 180;
+const lookDamp = (a, b, dt) => Math.abs(b - a) < 2e-6 ? b : THREE.MathUtils.damp(a, b, LOOK_LAMBDA, dt);
+function setCursor() { if (CURSOR_GRAB) canvas.style.cursor = drag ? 'grabbing' : hovered ? 'pointer' : 'grab'; }   // 平常手掌、拖曳抓取、指到作品變手指
+setCursor();
+// 自己調高低（番薯 11/16）：按住 C 視線慢慢降、按住空白鍵慢慢升，放開就停在那個高度（範圍 0.6～1.6 公尺）。右下角兩顆按鈕是手機用的，一樣按住才動
+let eyeY = CFG.eye; const CROUCH_EYE = .6, CROUCH_SPEED = .6;   // 速度：公尺／秒（從站高蹲到底約 1.7 秒）
+const hold = {dn: false, up: false};
+for (const [id, k] of [['crouchDn', 'dn'], ['crouchUp', 'up']]) {
+  const el = document.getElementById(id), set = on => { hold[k] = on; el.setAttribute('aria-pressed', String(on)); };
+  if (TOUCH) el.textContent = el.textContent.replace(/（.*）$/, '');   // 手機沒有鍵盤，按鈕上不顯示按鍵名
+  el.addEventListener('pointerdown', e => { if (state !== 'walk') return; e.preventDefault(); el.setPointerCapture(e.pointerId); set(true); });
+  for (const t of ['pointerup', 'pointercancel', 'lostpointercapture', 'blur']) el.addEventListener(t, () => set(false));
+  el.addEventListener('keydown', e => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); set(true); } });
+  el.addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'Enter') set(false); });
+}
+addEventListener('keydown', e => {
+  if (e.isComposing || e.target instanceof Element && e.target.closest('input,textarea,select')) return;
+  if (e.code === 'Escape') { leaveInspect(); return; }
+  if (e.target instanceof Element && e.target.closest('button,a')) return;
+  if (['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+  keys[e.code] = true; if (e.code === 'Escape') leaveInspect();
+  if (e.code === 'Enter' && state === 'walk' && !(e.target instanceof Element && e.target.closest('button,a'))) { const h = hovered || pickAt(innerWidth / 2, innerHeight / 2); if (h) enterInspect(h); }
+  skipIntro();
+});
+addEventListener('keyup', e => keys[e.code] = false);
+function clearInput() { hold.dn = hold.up = false; for (const k of Object.keys(keys)) keys[k] = false; joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; drag = null; mx = -1; hovered = null; vel.x = vel.z = 0; setCursor(); }
+addEventListener('blur', clearInput);
+document.addEventListener('visibilitychange', () => { if (document.hidden) clearInput(); });
+canvas.addEventListener('pointerdown', e => { skipIntro(); if (state !== 'walk') return; drag = {id: e.pointerId, x: e.clientX, y: e.clientY, sx: e.clientX, sy: e.clientY, t: e.timeStamp, sp: 0}; canvas.setPointerCapture(e.pointerId); setCursor(); });
+let mx = -1, my = -1;
+canvas.addEventListener('pointermove', e => {
+  mx = e.clientX; my = e.clientY;
+  if (!drag || e.pointerId !== drag.id || state !== 'walk') return;
+  const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+  if (!dx && !dy) return;
+  let k = .0042;   // 舊：每像素固定 .0042 弧度（約為「抓住畫面」1:1 的 2.4 倍），慢轉會一格一格跳
+  if (!SENS_OLD) {   // 新：底＝畫面中央「抓住畫面」1:1（畫面高度的一半 ÷ tan(半個視野角)）按短邊換算；再依拖動速度加成：慢＝細轉不跳格、甩＝快轉身
+    const dtms = Math.max(1, e.timeStamp - drag.t); drag.sp += (Math.hypot(dx, dy) / dtms - drag.sp) * .35;
+    k = 2 * Math.tan(VFOV / 2) / Math.min(innerWidth, innerHeight) * SENS_MUL * (1 + Math.min(2, drag.sp * .6));
+  }
+  drag.t = e.timeStamp;
+  yawT -= dx * k; pitchT = Math.max(-1.2, Math.min(1.2, pitchT - dy * k));
+  if (!LOOK_SMOOTH) { yaw = yawT; pitch = pitchT; }
+});
+canvas.addEventListener('pointerup', e => {
+  if (!drag || e.pointerId !== drag.id) return;
+  const moved = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy); drag = null; setCursor();
+  if (moved < 6 && state === 'walk') { const h = pickAt(e.clientX, e.clientY); if (h) enterInspect(h); }
+});
+canvas.addEventListener('pointercancel', () => { drag = null; setCursor(); }); canvas.addEventListener('lostpointercapture', () => { drag = null; setCursor(); });
+canvas.addEventListener('pointerleave', () => { mx = -1; });
+// Three.js interaction/performance: cached local bounds, no high-poly triangle scan on hover.
+const ray = new THREE.Raycaster(), pickPointer = new THREE.Vector2(), pickBox = new THREE.Box3(), pickPoint = new THREE.Vector3();
+const pickBounds = new WeakMap();
+function localBounds(g) { let b = pickBounds.get(g); if (!b) { b = new THREE.Box3(); for (const m of g.children) if (m.isMesh) { m.updateMatrix(); m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrix)); } pickBounds.set(g, b); } return b; }
+function pickAt(cx, cy) {
+  pickPointer.set(cx / innerWidth * 2 - 1, -(cy / innerHeight) * 2 + 1); ray.setFromCamera(pickPointer, camera);
+  let nearest = null, distance = 9;
+  for (const g of heroGroups) { if (!g.visible || noInspect(g)) continue; pickBox.copy(localBounds(g)).applyMatrix4(g.matrixWorld); if (!ray.ray.intersectBox(pickBox, pickPoint)) continue; const d = pickPoint.distanceTo(camera.position); if (d < distance) { nearest = g; distance = d; } }
+  if (!nearest) return null;
+  // A front-facing artwork is in front of its own support; a hidden one is blocked.
+  ray.far = distance - .001;
+  const blocked = ray.intersectObjects(pickBlockers, false).length > 0; ray.far = Infinity;
+  return blocked ? null : nearest;
+}
+
+// 指到作品：名牌＋（風格 2、3）聚光燈＋（風格 3）游標圈圈變大
+const tagEl = document.getElementById('tag'), ringEl = document.getElementById('ring');
+if (V === 3 && !TOUCH && !REDUCE) ringEl.style.display = 'block';
+let nextPick = 0, rx = 0, ry = 0;
+function updateHover(now) {
+  if (now < nextPick) return; nextPick = now + 50;
+  const h = state === 'walk' && !drag && (mx >= 0 || TOUCH) ? pickAt(TOUCH ? innerWidth / 2 : mx, TOUCH ? innerHeight / 2 : my) : null;
+  if (h !== hovered) { hovered = h; if (CURSOR_GRAB) setCursor(); else canvas.style.cursor = h ? 'pointer' : 'grab'; ringEl.classList.toggle('hot', !!h); }
+  if (h) { tagEl.textContent = h.userData.real ? `真作品・${h.userData.name}` : h.userData.name; tagEl.classList.add('on'); } else tagEl.classList.remove('on');
+}
+
+// ---------- 細看（沿用展場主檔：作品離牆飄出、可 360 度繞） ----------
+const orbit = new OrbitControls(camera, canvas); orbit.enabled = false; orbit.enableDamping = !REDUCE; orbit.dampingFactor = .08; orbit.minDistance = .3; orbit.maxDistance = 1.0; orbit.rotateSpeed = .8; orbit.zoomSpeed = .8; orbit.enablePan = false;
+const inspectLight = new THREE.PointLight(0xfff0dc, 0, 5, 2); camera.add(inspectLight); inspectLight.position.set(.3, .4, 0);
+const barEl = document.getElementById('bar'), nameEl = document.getElementById('name'), spinBtn = document.getElementById('spin');
+let tw = null, saved = null, inspecting = null;
+const ease = V === 1 ? (t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2) : easeOutBack;   // 風格 2、3：到位時有一點彈性
+function startTween(toPos, toQuat, dur, done) { if (REDUCE) { camera.position.copy(toPos); camera.quaternion.copy(toQuat); done(); return; } tw = {t: 0, dur, p0: camera.position.clone(), q0: camera.quaternion.clone(), p1: toPos, q1: toQuat, done}; }
+function enterInspect(g) {
+  if (state !== 'walk' || noInspect(g)) return;
+  if (g.userData.real && g.userData.n === 3 && !Q.has('inspect')) { clearInput(); window.open('../雕件試做/viewer/雕件1.html?from=gallery', '_blank', 'noopener'); return; }
+  if (g.userData.real && g.userData.n === 4 && !Q.has('inspect')) { clearInput(); window.open('../作品2_藍鳥/雕件2.html?from=gallery', '_blank', 'noopener'); return; }
+  clearInput();
+  saved = {pos: pos.clone(), yaw, pitch};
+  const c = g.userData.floatCenter.clone(); inspecting = g; g.userData.target = 1; if (REDUCE) { g.userData.fp = 1; g.position.copy(g.userData.floatPos); }
+  const end = c.clone().addScaledVector(g.userData.normal, .85); end.y = c.y + .03;
+  const tmp = new THREE.PerspectiveCamera(); tmp.position.copy(end); tmp.lookAt(c);
+  state = 'toInspect'; hintEl.style.opacity = 0; tagEl.classList.remove('on'); document.body.classList.add('inspect');
+  startTween(end, tmp.quaternion.clone(), V === 1 ? 1.0 : 1.15, () => {
+    orbit.target.copy(c); orbit.enabled = true; orbit.update(); state = 'inspect';
+    if (Q.has('cam')) { const [dx, dy, dz] = Q.get('cam').split(',').map(Number); camera.position.copy(c).add(new THREE.Vector3(dx, dy, 0)).addScaledVector(g.userData.normal, dz); orbit.update(); }   // 診斷用：?cam=右,上,前（公尺，相對作品中心）
+    barEl.style.display = 'flex'; nameEl.style.display = 'block'; nameEl.replaceChildren(document.createTextNode(g.userData.name), document.createElement('br'), document.createTextNode(TOUCH ? '單指旋轉・雙指縮放' : '拖曳旋轉・滾輪縮放')); backButton.focus({preventScroll: true});
+  });
+  inspectLight.intensity = 1.3;
+}
+function leaveInspect() {
+  if (state !== 'inspect') return;
+  clearInput();
+  orbit.enabled = false; orbit.autoRotate = false; spinBtn.textContent = '自動旋轉：關'; barEl.style.display = 'none'; nameEl.style.display = 'none'; state = 'toWalk'; document.body.classList.remove('inspect');
+  if (inspecting) { inspecting.userData.target = 0; if (REDUCE) { inspecting.userData.fp = 0; inspecting.position.copy(inspecting.userData.wallPos); } inspecting = null; }
+  const tmp = new THREE.PerspectiveCamera(); tmp.position.copy(saved.pos); tmp.rotation.order = 'YXZ'; tmp.rotation.set(saved.pitch, saved.yaw, 0);
+  startTween(saved.pos.clone(), tmp.quaternion.clone(), .9, () => { pos.copy(saved.pos); yaw = yawT = saved.yaw; pitch = pitchT = saved.pitch; state = 'walk'; if (assetErrors.length) hintEl.style.opacity = 1; canvas.focus({preventScroll: true}); });
+  inspectLight.intensity = 0;
+}
+const backButton = document.getElementById('back'); backButton.onclick = leaveInspect;
+canvas.tabIndex = 0; canvas.setAttribute('role','img'); canvas.setAttribute('aria-label','3D 展場；WASD 或方向鍵移動，Enter 近看中央作品，Escape 返回');
+if (Q.has('inspect')) {   // ?inspect=3 開雕件、?inspect=4 開作品2（診斷／截圖用，與舊版網址相容）
+  const wait = setInterval(() => { const g = heroGroups.find(h => h.userData.real && h.userData.n === +Q.get('inspect')); if (window.__ready && g && state === 'walk') { clearInterval(wait); enterInspect(g); } }, 200);
+}
+spinBtn.onclick = () => { orbit.autoRotate = !orbit.autoRotate; orbit.autoRotateSpeed = 2.2; spinBtn.textContent = '自動旋轉：' + (orbit.autoRotate ? '開' : '關'); };
+
+// ---------- 開場 ----------
+const introEl = document.getElementById('intro'), titleEl = document.getElementById('title'), subEl = document.getElementById('sub');
+const TITLE = '展覽名稱（暫）';
+if (V >= 2) {
+  TITLE.split('').forEach((ch, i) => { const s = document.createElement('span'); s.textContent = ch; s.style.transitionDelay = (V === 3 ? i * .07 : 0) + 's'; titleEl.appendChild(s); });
+  subEl.textContent = '3D 展場模擬';
+}
+let introT0 = null, introDone = false;
+const INTRO = V === 1 ? {total: .9, curtain: 0} : V === 2 ? {total: Math.max(3.4, 1.4 + lights.at(-1).delay + .9), curtain: 1.6} : {total: 5.0, curtain: 2.6};
+if (Q.get('intro') === '0' || REDUCE) { introDone = true; }
+if (Q.get('intro') === '0') introEl.style.display = 'none';   // 診斷用：?intro=0 直接略過開場黑幕
+function skipIntro() { if (state === 'intro' && introT0 !== null) { introT0 -= 100000; } }
+function stepIntro(now) {
+  if (introT0 === null) { introT0 = now; if (V >= 2) { setTimeout(() => { titleEl.classList.add('in'); subEl.classList.add('in'); }, 60); } if (V === 1) introEl.classList.add('out'); }
+  const t = (now - introT0) / 1000;
+  if (V >= 2 && t > INTRO.curtain) introEl.classList.add('out');
+  if (V === 3) { const k = easeOutCubic(t / INTRO.total); camera.position.set(pos.x, CFG.eye, pos.z + .5 * (1 - k)); camera.rotation.set(pitch, yaw, 0); }
+  else { camera.position.copy(pos); camera.rotation.set(pitch, yaw, 0); }
+  if (t >= INTRO.total) { introDone = true; }
+  return t;
+}
+function lightTime(introTime) {   // 燈「一盞一盞亮起來」的時間軸
+  for (const L of lights) { const k = smooth((introTime - (V === 1 ? 0 : INTRO.curtain - .2) - L.delay) / .9); L.spot.intensity = L.base * k; if (L.shaft) L.shaft.uniforms.uAmt.value = L.shaftAmount * k; L.face.color.setScalar(.12 + .88 * k); }
+  for (const m of stripMats) m.color.setScalar(.6 + .4 * smooth((introTime - INTRO.curtain) / 1.2));
+}
+
+// ---------- 主迴圈 ----------
+const fwd = new THREE.Vector3(), right = new THREE.Vector3();
+function walk(dt) {
+  let f = (keys.KeyW || keys.ArrowUp ? 1 : 0) - (keys.KeyS || keys.ArrowDown ? 1 : 0) - joy.y, s = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0) + joy.x;
+  if (keys.ArrowLeft) yawT += 1.6 * dt; if (keys.ArrowRight) yawT -= 1.6 * dt;
+  if (LOOK_SMOOTH) { yaw = lookDamp(yaw, yawT, dt); pitch = lookDamp(pitch, pitchT, dt); } else { yaw = yawT; pitch = pitchT; }   // 緩衝：畫面角度追目標角度（THREE.MathUtils.damp，與幀率無關、不過衝）
+  const l = Math.hypot(f, s); if (l > 1) { f /= l; s /= l; }
+  const speed = keys.ShiftLeft || keys.ShiftRight ? 3.2 : 1.6;
+  fwd.set(-Math.sin(yaw), 0, -Math.cos(yaw)); right.set(Math.cos(yaw), 0, -Math.sin(yaw));
+  // Sweep each axis before crossing a face. Resolving overlaps by the nearest edge
+  // can push the visitor into a previously checked, overlapping stand/panel box.
+  const tx = (fwd.x * f + right.x * s) * speed, tz = (fwd.z * f + right.z * s) * speed;   // 目標速度
+  if (WALK_EASE) { const k = 1 - Math.exp(-((tx || tz) ? 10 : 14) * dt); vel.x += (tx - vel.x) * k; vel.z += (tz - vel.z) * k; if (!tx && !tz && Math.hypot(vel.x, vel.z) < .01) vel.x = vel.z = 0; }   // 起步約 0.23 秒到九成速、放開約滑 10 公分
+  else { vel.x = tx; vel.z = tz; }
+  const dx = vel.x * dt, dz = vel.z * dt;
+  let nx = Math.max(-W / 2 + .5, Math.min(W / 2 - .5, pos.x + dx));
+  for (const o of obstacles) if (pos.z > o.z0 && pos.z < o.z1) {
+    if (dx > 0 && pos.x <= o.x0 && nx > o.x0) nx = Math.min(nx, o.x0);
+    if (dx < 0 && pos.x >= o.x1 && nx < o.x1) nx = Math.max(nx, o.x1);
+  }
+  if (nx !== pos.x + dx) vel.x = 0;   // 撞到牆或展台：該方向速度歸零（碰撞掃描本身沒動）
+  pos.x = nx;
+  let nz = Math.max(-D / 2 + .5, Math.min(D / 2 - .5, pos.z + dz));
+  for (const o of obstacles) if (pos.x > o.x0 && pos.x < o.x1) {
+    if (dz > 0 && pos.z <= o.z0 && nz > o.z0) nz = Math.min(nz, o.z0);
+    if (dz < 0 && pos.z >= o.z1 && nz < o.z1) nz = Math.max(nz, o.z1);
+  }
+  const dEye = ((keys.Space || hold.up) ? 1 : 0) - ((keys.KeyC || hold.dn) ? 1 : 0);   // 按住 C／蹲下鈕＝降，按住空白鍵／站起鈕＝升，放開就停；兩個一起按互相抵消
+  eyeY = Math.max(CROUCH_EYE, Math.min(CFG.eye, eyeY + dEye * CROUCH_SPEED * dt));
+  if (nz !== pos.z + dz) vel.z = 0;
+  pos.z = nz; pos.y = eyeY;
+  camera.position.copy(pos); camera.rotation.set(pitch, yaw, 0);
+  if (Q.get('top')) { camera.position.set(0, 9, 0.01); camera.rotation.set(-Math.PI / 2, 0, 0); }   // 診斷用：?top=1 由上往下看整個展場配置
+}
+let last = performance.now(), fpsAcc = 0, fpsN = 0, lastMoveT = 0, slowFrames = 0;
+const lastCamP = new THREE.Vector3(1e9, 0, 0), lastCamQ = new THREE.Quaternion();
+const fpsEl = document.createElement('div'); fpsEl.style.cssText = 'position:fixed;left:14px;bottom:14px;font:12px monospace;opacity:.7;display:none;z-index:25'; document.body.appendChild(fpsEl); if (Q.get('fps')) fpsEl.style.display = 'block';
+let introTime = 0;
+function frame(now) {
+  requestAnimationFrame(frame);
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  if (canvas.width !== Math.floor(innerWidth * renderer.getPixelRatio()) || canvas.height !== Math.floor(innerHeight * renderer.getPixelRatio())) onResize();
+  // Awwwards Motion: critically damped artwork flight, integrated in small steps.
+  for (const g of heroGroups) { const u = g.userData; if (Math.abs(u.target - u.fp) > .00005 || Math.abs(u.fv || 0) > .00005) {
+    if (REDUCE) { u.fp = u.target; u.fv = 0; } else { const steps = Math.max(1, Math.ceil(dt * 120)), h = dt / steps; u.fv ||= 0; for (let i = 0; i < steps; i++) { u.fv += (100 * (u.target - u.fp) - 20 * u.fv) * h; u.fp += u.fv * h; } if (Math.abs(u.target - u.fp) < .00005 && Math.abs(u.fv) < .00005) { u.fp = u.target; u.fv = 0; } }
+    g.position.lerpVectors(u.wallPos, u.floatPos, u.fp); shadowFade(g); lampFade(g);
+  } }
+  if (state === 'intro') {
+    if (introDone) { introEl.classList.add('out'); introTime = 99; state = 'walk'; camera.position.copy(pos); camera.rotation.set(pitch, yaw, 0); if (!assetErrors.length) setTimeout(() => { if (!assetErrors.length) hintEl.style.opacity = 0; }, 12000); }
+    else introTime = stepIntro(now);
+  } else if (state === 'walk') walk(dt);
+  else if (tw) { tw.t += dt / tw.dur; const k = ease(Math.min(1, tw.t)); camera.position.lerpVectors(tw.p0, tw.p1, k); camera.quaternion.slerpQuaternions(tw.q0, tw.q1, Math.min(1, k)); if (tw.t >= 1) { const d = tw.done; tw = null; d(); } }
+  else if (state === 'inspect') orbit.update();
+  for (const b of realButtons) { const disabled = state !== 'walk' || !b.work || !!b.failed; if (b.disabled !== disabled) b.disabled = disabled; }
+  lightTime(introTime);
+  { const lv = smooth((introTime - (V === 1 ? 0 : INTRO.curtain)) / 1.4); beamMat.uniforms.uAmt.value = .012 * lv; lampFaceInst.color.setScalar(.12 + .88 * lv); }   // 每件作品的光柱與燈面，跟開場一起亮起
+  updateHover(now); updateFocus(dt);
+  if (dust) { const a = dust.geometry.attributes.position; for (let i = 0; i < a.count; i++) { a.array[i * 3 + 1] += dt * .018 * (1 + (i % 5) * .3); a.array[i * 3] += Math.sin(now * .0003 + i) * dt * .01; if (a.array[i * 3 + 1] > H - .1) a.array[i * 3 + 1] = .3; } a.needsUpdate = true; }
+  if (V === 3 && !TOUCH && !REDUCE && mx >= 0) { rx += (mx - rx) * Math.min(1, dt * 14); ry += (my - ry) * Math.min(1, dt * 14); ringEl.style.transform = `translate(${rx}px,${ry}px)`; }
+  if (tagEl.classList.contains('on')) { if (V === 1) { tagEl.style.transform = `translate(${innerWidth / 2 - tagEl.offsetWidth / 2}px,${innerHeight - 90}px)`; } else { const x = TOUCH ? innerWidth / 2 : mx, y = TOUCH ? innerHeight / 2 : my; tagEl.style.transform = `translate(${Math.max(8, Math.min(x + 18, innerWidth - tagEl.offsetWidth - 8))}px,${Math.min(y + 18, innerHeight - tagEl.offsetHeight - 8)}px)`; } }
+  // 動的時候降解析度、停下來再恢復；若停下來也跑不到約 40 格，就永久降一檔（慢的電腦／手機自動變輕）
+  // 視角手感：只有「位置在動」（走路、蹲站、飛向作品）才降畫質；單純轉視角不降，免得拖一下就糊→清跳動（?lowres=1 回舊行為）。轉視角時也照常量幀時間，慢的機器仍會被「偏慢降一檔」保護
+  const posMoved = camera.position.distanceToSquared(lastCamP) > 1e-9, rotMoved = camera.quaternion.angleTo(lastCamQ) > 1e-5;
+  if (posMoved || rotMoved) { if (MOVE_DROP && (posMoved || LOWRES_TURN)) lastMoveT = now; lastCamP.copy(camera.position); lastCamQ.copy(camera.quaternion); }
+  const moving = now - lastMoveT < 250, wantRatio = moving ? Math.min(idleRatio, MOVE_RATIO) : idleRatio;
+  if (Math.abs(renderer.getPixelRatio() - wantRatio) > .01) renderer.setPixelRatio(wantRatio);
+  if (!moving && dt > .026) { if (++slowFrames > 40 && idleRatio > 1) { idleRatio = Math.max(1, idleRatio - .25); slowFrames = 0; console.log('[展場] 偏慢，清楚檔降到', idleRatio); } } else slowFrames = Math.max(0, slowFrames - 1);
+  renderer.render(scene, camera);
+  fpsAcc += dt; fpsN++; if (fpsAcc > .5) { fpsEl.textContent = `${Math.round(fpsN / fpsAcc)} fps  tris ${(renderer.info.render.triangles / 1000) | 0}k  calls ${renderer.info.render.calls}`; fpsAcc = fpsN = 0; }
+}
+function onResize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+addEventListener('resize', onResize); onResize();
+// 預熱（番薯 11/16 15:51「拖滑鼠轉視角會有點掉幀」）：量到重新載入後「第一次」拖視角會卡約 0.5 秒（3 次裡 3 次 490～545 毫秒）——各處的貼圖與模型要到第一次被看見才上傳顯卡。
+// 載入畫面還蓋著的時候，先把整個展場（關掉視錐裁切）畫一次，讓它們提早上傳；實測預熱後第一次拖視角最慢一幀 28～56 毫秒。?warm=0 關閉（舊行為）。
+// 真作品（雕像、小貨車）的貼圖最大，所以載入畫面要等真作品都載完（最多等 8 秒）再預熱，預熱完才收起載入畫面；不然預熱要分兩次，第二次會在開始玩之後才凍住 1 秒多。
+const WARM = Q.get('warm') !== '0';
+let onAssetsSettled = null;
+function warmScene() {
+  if (!WARM) return;
+  const a = performance.now(), objs = [];
+  scene.traverse(o => { if (o.frustumCulled) { objs.push(o); o.frustumCulled = false; } });
+  renderer.render(scene, camera); renderer.getContext().finish();
+  for (const o of objs) o.frustumCulled = true;
+  (window.__warm ||= {runs: []}).runs.push({ms: Math.round(performance.now() - a), whileCovered: true, at: Math.round(a)});
+}
+const startLoop = () => { const ld = document.getElementById('load'); ld.classList.add('done'); setTimeout(() => ld.style.display = 'none', 900); last = performance.now(); requestAnimationFrame(frame); };
+const assetsSettled = new Promise(res => { onAssetsSettled = res; if (window.__assetsSettled || !WARM) res(); setTimeout(res, 8000); });
+(renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve()).catch(() => {}).then(() => assetsSettled).then(() => { warmScene(); startLoop(); });
+window.__dbg = {obstacles, get halo() { return haloMesh; },lampCan, lampBeam, beamMat, wallItems, stands, panels, realWorks: REAL, camera, pos, scene, renderer, THREE, lights, spots: lights.map(l => l.spot), CFG, heroGroups, faces, assetErrors, get idleRatio() { return idleRatio; }, get state() { return state; }, get workCount() { return workCount; }};
+</script>
+
+<!-- 2026-11-06: installed design skills + adapted Aceternity feedback (#bar buttons); local only. -->
+<link rel="stylesheet" href="./互動回饋.css?v=20261106a">
+<script src="./互動回饋.js?v=20261106c" data-scope="exhibition"></script>

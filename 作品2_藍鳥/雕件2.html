@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>雕件2｜松風閣・細看作品</title>
+<style>
+*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#eeeae2;color:#25231f;font-family:-apple-system,"PingFang TC",sans-serif}canvas{display:block;width:100vw;height:100dvh;touch-action:none}header{position:fixed;top:24px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:start;pointer-events:none}header>*{pointer-events:auto}h1{margin:8px 0;font:400 36px "Songti TC",serif;letter-spacing:.1em}small{letter-spacing:.14em;color:#615a4f}p{font-size:13px;line-height:1.7}a,button{font:inherit;color:inherit;background:#faf8f2ed;border:1px solid #a9a193;border-radius:24px;min-height:44px;padding:10px 17px;text-decoration:none;cursor:pointer;touch-action:manipulation}button:active{transform:scale(.96)}:focus-visible{outline:3px solid #805c27;outline-offset:3px}button[aria-pressed=true]{background:#302c25;color:white}button:disabled{opacity:.45;cursor:wait}footer{position:fixed;bottom:max(20px,env(safe-area-inset-bottom));left:20px;right:20px;text-align:center;pointer-events:none}footer>*{pointer-events:auto}nav{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}#status{position:fixed;top:44%;left:15%;right:15%;text-align:center;background:#faf8f2e8;padding:16px;border-radius:12px;line-height:1.8}#status[hidden]{display:none}.help{color:#514b42;font-size:12px;margin:12px 0 0}@media(max-width:600px){header{left:18px;right:18px;top:20px}header a{font-size:12px;padding:10px 12px}header p{max-width:180px;font-size:12px}h1{font-size:28px}small{font-size:10px}footer{left:12px;right:12px;bottom:max(12px,env(safe-area-inset-bottom))}nav{gap:6px}button{font-size:13px;padding:9px 13px}.help{font-size:11px;margin-top:8px}}@media(prefers-reduced-motion:reduce){button:active{transform:none}}
+</style>
+<header><div><small>松風閣畫廊 · 細看作品</small><h1>雕件2</h1><p>轉一轉，看見每一面的細節。</p></div><a id="back" href="../展場/index.html?intro=0">← 返回展場</a></header>
+<div id="status" role="status" aria-live="polite">雕件2 載入中…</div>
+<footer><nav aria-label="作品檢視操作"><button id="front" disabled>回正面</button><button id="rear" disabled>看背面</button><button id="closer" disabled>＋ 放大</button><button id="farther" disabled>－ 縮小</button><button id="spin" disabled aria-pressed="false">自動旋轉：關</button></nav><p class="help">電腦：拖曳旋轉・滾輪縮放・右鍵拖曳移動<br>手機：單指旋轉・雙指縮放及移動</p></footer>
+<script type="importmap">{"imports":{"three":"../展場/lib/three.module.js","three/addons/":"../展場/lib/addons/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import {GLTFLoader} from './viewer/GLTFLoader.js';
+import {MeshoptDecoder} from './viewer/meshopt_decoder.module.js';
+import {OrbitControls} from 'three/addons/OrbitControls.js';
+const status=document.querySelector('#status'),buttons=[...document.querySelectorAll('button')],reduced=matchMedia('(prefers-reduced-motion:reduce)').matches;
+const r=new THREE.WebGLRenderer({antialias:true});r.setPixelRatio(Math.min(devicePixelRatio,2));r.setSize(innerWidth,innerHeight);r.outputColorSpace=THREE.SRGBColorSpace;r.toneMapping=THREE.ACESFilmicToneMapping;document.body.append(r.domElement);r.domElement.tabIndex=0;r.domElement.setAttribute('aria-label','雕件2立體檢視；拖曳旋轉，滾輪縮放；方向鍵旋轉，加減鍵縮放，Home回正面');
+const s=new THREE.Scene();s.background=new THREE.Color(0xeeeae2);const cam=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.001,20);
+const c=new OrbitControls(cam,r.domElement);c.enableDamping=!reduced;c.dampingFactor=.08;c.minDistance=.13;c.maxDistance=1.5;c.rotateSpeed=.8;c.zoomSpeed=.8;c.screenSpacePanning=true;c.autoRotateSpeed=1;
+s.add(new THREE.HemisphereLight(0xffffff,0x77716a,1.8));const key=new THREE.DirectionalLight(0xfff5e8,2.2);key.position.set(1,2,3);s.add(key);const fill=new THREE.DirectionalLight(0xffffff,1.4);fill.position.set(-2,1,-2);s.add(fill);
+let home=.7,loaded=false,obj;const spin=document.querySelector('#spin');
+function stop(){c.autoRotate=false;spin.textContent='自動旋轉：關';spin.setAttribute('aria-pressed','false')}
+function view(back=false){stop();const damping=c.enableDamping;c.enableDamping=false;c.update();c.enableDamping=damping;c.target.set(0,0,0);cam.position.set(0,.015,back?-home:home);c.update()}
+function zoom(f){stop();const offset=cam.position.clone().sub(c.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*f,c.minDistance,c.maxDistance));cam.position.copy(c.target).add(offset);c.update()}
+function fail(){loaded=false;window.ready=false;buttons.forEach(b=>b.disabled=true);status.hidden=false;status.textContent='作品載入失敗，請重新整理，或按右上角返回展場。'}
+const mgr=new THREE.LoadingManager();mgr.onError=fail;mgr.onLoad=()=>{if(!obj||status.textContent.includes('失敗'))return;loaded=true;window.ready=true;status.hidden=true;buttons.forEach(b=>b.disabled=false);view()};
+new GLTFLoader(mgr).setMeshoptDecoder(MeshoptDecoder).load('第3次_高精細/bluebird_closed_v2.glb',gltf=>{
+ obj=gltf.scene;obj.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(obj),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
+ const holder=new THREE.Group();holder.add(obj);obj.position.sub(center);holder.scale.set(.155/size.x,.293/size.y,.093/size.z);
+ obj.traverse(m=>{if(m.isMesh){for(const mat of [m.material].flat()){if(mat.map)mat.map.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy())}}});s.add(holder);window.__sculpture.object=holder;
+},undefined,fail);
+document.querySelector('#front').onclick=()=>view();document.querySelector('#rear').onclick=()=>view(true);document.querySelector('#closer').onclick=()=>zoom(.8);document.querySelector('#farther').onclick=()=>zoom(1.25);
+spin.onclick=()=>{c.autoRotate=!c.autoRotate;spin.setAttribute('aria-pressed',String(c.autoRotate));spin.textContent=`自動旋轉：${c.autoRotate?'開':'關'}`};c.addEventListener('start',stop);
+r.domElement.addEventListener('keydown',e=>{if(!loaded||!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','Home'].includes(e.key))return;e.preventDefault();stop();if(e.key==='Home'){view();return}if(['+','=','-'].includes(e.key)){zoom(e.key==='-'?1.25:.8);return}const sp=new THREE.Spherical().setFromVector3(cam.position.clone().sub(c.target));if(e.key==='ArrowLeft')sp.theta-=.15;if(e.key==='ArrowRight')sp.theta+=.15;if(e.key==='ArrowUp')sp.phi-=.15;if(e.key==='ArrowDown')sp.phi+=.15;sp.makeSafe();cam.position.copy(c.target).add(new THREE.Vector3().setFromSpherical(sp));c.update()});
+document.querySelector('#back').onclick=e=>{if(new URLSearchParams(location.search).get('from')==='gallery'){e.preventDefault();window.close();setTimeout(()=>location.assign('../展場/index.html?intro=0'),150)}};
+function resize(){r.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();home=innerWidth<600?.92:.7;if(loaded)view()}addEventListener('resize',resize);resize();window.__sculpture={camera:cam,controls:c,renderer:r,scene:s,THREE};r.setAnimationLoop(()=>{if(!document.hidden){c.update();r.render(s,cam)}});
+</script></html>

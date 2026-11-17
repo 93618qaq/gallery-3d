@@ -1,0 +1,106 @@
+{
+  "account": "93618qaq",
+  "repository": "gallery-3d",
+  "visibility": "public",
+  "branch": "main",
+  "planned_url": "https://93618qaq.github.io/gallery-3d/",
+  "files": [
+    {
+      "path": "展場/index.html",
+      "bytes": 83592,
+      "source_sha256": "20301b7a0a700ff1d54153935c8b96928af8c1eadb21a32a5e520fc2cd8ace16",
+      "sha256": "68a63ef7dd92e6a2000f19bd4e9b1ee013bee4b3815c4a2777e5baa4fd8b618d"
+    },
+    {
+      "path": "展場/互動回饋.js",
+      "bytes": 8630,
+      "source_sha256": "497f909fa39470f33fef5af194100265ef9705854c6ab90bed53f7058d5154ad",
+      "sha256": "497f909fa39470f33fef5af194100265ef9705854c6ab90bed53f7058d5154ad"
+    },
+    {
+      "path": "展場/互動回饋.css",
+      "bytes": 1652,
+      "source_sha256": "455a1f6ced2d8855baac90e6976196bde8346c96a1ebdb864a8847a6ebb8527f",
+      "sha256": "455a1f6ced2d8855baac90e6976196bde8346c96a1ebdb864a8847a6ebb8527f"
+    },
+    {
+      "path": "展場/lib/three.module.js",
+      "bytes": 1272972,
+      "source_sha256": "76dea8151bc9352aef3528b4262e249b2604f62543828328db978d060d61a495",
+      "sha256": "76dea8151bc9352aef3528b4262e249b2604f62543828328db978d060d61a495"
+    },
+    {
+      "path": "展場/lib/addons/OBJLoader.js",
+      "bytes": 21175,
+      "source_sha256": "022e0334f837c60506276e136faf3e54b21b20aea672eed4a0c50651d4fc0a5d",
+      "sha256": "022e0334f837c60506276e136faf3e54b21b20aea672eed4a0c50651d4fc0a5d"
+    },
+    {
+      "path": "展場/lib/addons/OrbitControls.js",
+      "bytes": 29868,
+      "source_sha256": "5a44a9e86a2a0fb11933eed69bc2cd33c76a496854c1aed6ed776efa87d7b064",
+      "sha256": "5a44a9e86a2a0fb11933eed69bc2cd33c76a496854c1aed6ed776efa87d7b064"
+    },
+    {
+      "path": "雕件試做/viewer/雕件1.html",
+      "bytes": 7486,
+      "source_sha256": "526b88d6e3b954af5e1da1ab43afecc22e5f3c613b757461c3272f974f844178",
+      "sha256": "526b88d6e3b954af5e1da1ab43afecc22e5f3c613b757461c3272f974f844178"
+    },
+    {
+      "path": "雕件試做/viewer/model.obj",
+      "bytes": 4788755,
+      "source_sha256": "a47fcb2eabb0486d7e46dd1608859780a4a110121611b47d81bc575b4ebdda91",
+      "sha256": "a47fcb2eabb0486d7e46dd1608859780a4a110121611b47d81bc575b4ebdda91"
+    },
+    {
+      "path": "雕件試做/viewer/tex.jpg",
+      "bytes": 3288264,
+      "source_sha256": "6e713eeb69ae596a1517217e7b95d28c1aa45445681f50cc5e55e383d821b4ad",
+      "sha256": "6e713eeb69ae596a1517217e7b95d28c1aa45445681f50cc5e55e383d821b4ad"
+    },
+    {
+      "path": "作品2_藍鳥/雕件2.html",
+      "bytes": 7430,
+      "source_sha256": "294ec0e50d0fbee28800c08a56c9f68ab22aa2198bc254103942c424bc4f1d11",
+      "sha256": "294ec0e50d0fbee28800c08a56c9f68ab22aa2198bc254103942c424bc4f1d11"
+    },
+    {
+      "path": "作品2_藍鳥/viewer/GLTFLoader.js",
+      "bytes": 108515,
+      "source_sha256": "3d8d4b6b2c7e9b0690fe4b464d4fbb0faca5eda0b1d86391405b9634c1a11355",
+      "sha256": "3d8d4b6b2c7e9b0690fe4b464d4fbb0faca5eda0b1d86391405b9634c1a11355"
+    },
+    {
+      "path": "作品2_藍鳥/viewer/BufferGeometryUtils.js",
+      "bytes": 31906,
+      "source_sha256": "9be041e96308775d00e2695cc607645b9a9b64fd7c0e759dd8f7c00a8d92becb",
+      "sha256": "9be041e96308775d00e2695cc607645b9a9b64fd7c0e759dd8f7c00a8d92becb"
+    },
+    {
+      "path": "作品2_藍鳥/viewer/meshopt_decoder.module.js",
+      "bytes": 24850,
+      "source_sha256": "01f48524f4bac6141eaba07e94cc36e7ee56f311796fa6117c159842941b0468",
+      "sha256": "01f48524f4bac6141eaba07e94cc36e7ee56f311796fa6117c159842941b0468"
+    },
+    {
+      "path": "作品2_藍鳥/第3次_高精細/bluebird_closed_v2.glb",
+      "bytes": 15222172,
+      "source_sha256": "57abadc392912b6f81930b8208554787b2496d65474da0db7581ee46b4f6f9ea",
+      "sha256": "57abadc392912b6f81930b8208554787b2496d65474da0db7581ee46b4f6f9ea"
+    },
+    {
+      "path": "作品3_小貨車/重建_20261117_遮罩版/truck_masked_web.glb",
+      "bytes": 9502912,
+      "source_sha256": "603149042aa289e66fca5199b0cf3856b9e351dbc641330227bea2d7fac9330c",
+      "sha256": "603149042aa289e66fca5199b0cf3856b9e351dbc641330227bea2d7fac9330c"
+    },
+    {
+      "path": "作品4_新雕件/重建_20261117_遮罩版/sculpture3_masked_web.glb",
+      "bytes": 5866416,
+      "source_sha256": "5a757b4c7e702a23e4d6ec0f3a10ca445984d992eb29e1fd4a3a37cc34febe7a",
+      "sha256": "5a757b4c7e702a23e4d6ec0f3a10ca445984d992eb29e1fd4a3a37cc34febe7a"
+    }
+  ],
+  "total_bytes": 40266595
+}

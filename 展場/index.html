@@ -58,7 +58,7 @@
 <div id="load" role="status" aria-live="polite">載入展場中…（第一次要幾秒）</div>
 <div id="intro" aria-hidden="true"><div id="title"></div><div id="sub"></div></div>
 <div id="bar"><button id="back">← 回到展場</button><button id="spin">自動旋轉：關</button></div>
-<nav id="realNav" aria-label="真實雕件"><button data-real="3" disabled>雕像1・載入中</button><button data-real="4" disabled>雕像2・載入中</button><button data-real="5" disabled hidden>小貨車・載入中</button><button data-real="6" disabled hidden>雕像3・載入中</button></nav>
+<nav id="realNav" aria-label="真實雕件"><button data-real="3" disabled>雕像1・載入中</button><button data-real="4" disabled>雕像2・載入中</button><button data-real="5" disabled hidden>小貨車・載入中</button><button data-real="6" disabled>劍龍・載入中</button></nav>
 <div id="crouch"><button id="crouchUp" type="button" aria-pressed="false" title="按住慢慢站起（快速鍵：空白鍵）">按住站起 ▲（空白鍵）</button><button id="crouchDn" type="button" aria-pressed="false" title="按住慢慢蹲下（快速鍵：C）">按住蹲下 ▼（C 鍵）</button></div>
 <div id="name" role="status" aria-live="polite"></div>
 <div id="tourNote">本機試作・畫作與展台雕件為示意</div>
@@ -406,7 +406,7 @@ const FRAMES = [0xf4f1ea, 0x1b1b1c, 0xb58a5a, 0xd8cfc0];
 const artTex = Array.from({length: 12}, (_, i) => artTexture(i));
 const heroGroups = [], pickables = [];
 const realButtons = [...document.querySelectorAll('#realNav button')];
-const noInspect = g => !!g.userData.real && (g.userData.n === 5 || g.userData.n === 6);   // 小貨車、雕像3 底部沒拍到，不給客人近看，只放展台上遠看（小貨車：番薯 11/16 指定；雕像3：照小貨車同一做法，待番薯確認）
+const noInspect = g => !!g.userData.real && g.userData.n === 5;   // 小貨車維持不近看；劍龍改走限制底部視角的獨立頁。
 for (const b of realButtons) b.onclick = () => { if (b.work && state === 'walk') enterInspect(b.work); };
 let workCount = 0;
 const ROWS = [{y: 1.62, hmax: .65, off: 0}, {y: .86, hmax: .4, off: 100}];   // 上下兩排（上排大件、下排小件），為了放進一百多件
@@ -582,7 +582,7 @@ REAL.forEach(work => {
       shadowMesh(P, T, C, I);
     }
     if (!work.stand) addWallShadow(g, f, wc, dw * .62, dh * .62, {pad: .09, a: .34, dy: -.03, fw: dw, fh: dh, real: true}); buildWallShadows();   // 真作品形狀不規則：影子縮成柔和的一團，不畫成方塊
-    const button = realButtons.find(b => +b.dataset.real === work.no); button.work = g; button.textContent = button.failed ? (work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`) : (work.no === 5 ? '近看小貨車' : work.no === 6 ? '近看雕像3' : work.no === 3 ? '雕件1 ↗' : '雕件2 ↗');
+    const button = realButtons.find(b => +b.dataset.real === work.no); button.work = g; button.textContent = button.failed ? (work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`) : (work.no === 5 ? '近看小貨車' : work.no === 6 ? '劍龍 ↗' : work.no === 3 ? '雕件1 ↗' : '雕件2 ↗');
   };
   if (isGLB) {
     // Keep LoadingManager pending while the matching r160 loader/decoder imports.
@@ -700,6 +700,7 @@ const ease = V === 1 ? (t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3
 function startTween(toPos, toQuat, dur, done) { if (REDUCE) { camera.position.copy(toPos); camera.quaternion.copy(toQuat); done(); return; } tw = {t: 0, dur, p0: camera.position.clone(), q0: camera.quaternion.clone(), p1: toPos, q1: toQuat, done}; }
 function enterInspect(g) {
   if (state !== 'walk' || noInspect(g)) return;
+  if (g.userData.real && g.userData.n === 6) { clearInput(); window.open('../作品4_新雕件/劍龍.html?from=gallery', '_blank', 'noopener'); return; }
   if (g.userData.real && g.userData.n === 3 && !Q.has('inspect')) { clearInput(); window.open('../雕件試做/viewer/雕件1.html?from=gallery', '_blank', 'noopener'); return; }
   if (g.userData.real && g.userData.n === 4 && !Q.has('inspect')) { clearInput(); window.open('../作品2_藍鳥/雕件2.html?from=gallery', '_blank', 'noopener'); return; }
   clearInput();

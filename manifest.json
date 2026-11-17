@@ -6,13 +6,6 @@
   "planned_url": "https://93618qaq.github.io/gallery-3d/",
   "files": [
     {
-      "path": "展場/index.html",
-      "bytes": 83252,
-      "source_sha256": "682358fe7a2b9f06f0e80964c6aa41d93f66a3a1fcfb220f8c736cfadff7bb90",
-      "sha256": "039a352b5c71ea18d8a837869267f41f5e35813012d0aad0b8bfecbaa644fbd5",
-      "note": "劍龍點開獨立頁，底部視角受限"
-    },
-    {
       "path": "展場/互動回饋.js",
       "bytes": 8630,
       "source_sha256": "497f909fa39470f33fef5af194100265ef9705854c6ab90bed53f7058d5154ad",
@@ -114,7 +107,25 @@
       "bytes": 7672,
       "sha256": "fd771fbcb81d25d5f0f8d83f6239906548a947877425a2b0563f50550c169198",
       "source_sha256": "fd771fbcb81d25d5f0f8d83f6239906548a947877425a2b0563f50550c169198"
+    },
+    {
+      "path": "展場/index.html",
+      "bytes": 83996,
+      "sha256": "02218c83940d4b06869de19323c04683c29dc1d3ec00fa9da9f5d313869e1ffd",
+      "source_sha256": "b90948f6a3743bf01bbb52b893aec9e5f680e2e417d55102c19a17b220bee015"
+    },
+    {
+      "path": "小釋迦/小釋迦.glb",
+      "bytes": 45881552,
+      "sha256": "fe6e82188085cf8bbf51d3e6fa72c819f411596e535bb7e1df6183b4d600413c",
+      "source_sha256": "fe6e82188085cf8bbf51d3e6fa72c819f411596e535bb7e1df6183b4d600413c"
+    },
+    {
+      "path": "小釋迦/小釋迦.html",
+      "bytes": 7802,
+      "sha256": "4c681463e8a8d4361b8201a6a09d61770956ac79d34cf7b4b34a16842a6ea864",
+      "source_sha256": "4c681463e8a8d4361b8201a6a09d61770956ac79d34cf7b4b34a16842a6ea864"
     }
   ],
-  "total_bytes": 73687087
+  "total_bytes": 119577185
 }

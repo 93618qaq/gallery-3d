@@ -110,9 +110,9 @@
     },
     {
       "path": "展場/index.html",
-      "bytes": 83996,
-      "sha256": "02218c83940d4b06869de19323c04683c29dc1d3ec00fa9da9f5d313869e1ffd",
-      "source_sha256": "b90948f6a3743bf01bbb52b893aec9e5f680e2e417d55102c19a17b220bee015"
+      "bytes": 84454,
+      "sha256": "e79c517015d046dc1a67de5e207b083c7fd3e4c072e11de9a053ec4277dee40e",
+      "source_sha256": "e0982e98fd182ab3ba43b752b26def0a7691b37f3f42e198a53fbb0ef403208a"
     },
     {
       "path": "小釋迦/小釋迦.glb",
@@ -127,5 +127,5 @@
       "source_sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935"
     }
   ],
-  "total_bytes": 119577226
+  "total_bytes": 119577684
 }

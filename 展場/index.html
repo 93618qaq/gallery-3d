@@ -154,6 +154,11 @@ function artTexture(seed) {   // 示意畫作：程式畫的抽象色塊，不�
 const LAM = Q.get('lam') !== '0';
 function diffuseMat(o) { if (LAM) { const {roughness, metalness, ...r} = o; return new THREE.MeshLambertMaterial(r); } return new THREE.MeshStandardMaterial(o); }
 // ---------- 渲染器、場景 ----------
+// 2026-11-17：光色為零的燈不再重算 BRDF；保留全部燈、材質、貼圖及解析度。
+// r160 原碼仍對 visible=false 的 IncidentLight 執行 RE_Direct；零貢獻可直接略過。
+THREE.ShaderChunk.lights_fragment_begin = THREE.ShaderChunk.lights_fragment_begin.replaceAll(
+  'RE_Direct( directLight,', 'if ( directLight.visible ) RE_Direct( directLight,'
+);
 const renderer = new THREE.WebGLRenderer({antialias: Q.get('aa') !== '0', powerPreference: 'high-performance'});
 let idleRatio = +Q.get('pr') || Math.min(devicePixelRatio, TOUCH ? 1.5 : 1.75);   // 停下來時用這一檔；走路、轉動時自動降一檔（見主迴圈）
 const MOVE_RATIO = +Q.get('mr') || (TOUCH ? 1 : 1.25);
@@ -768,7 +773,7 @@ function walk(dt) {
   if (keys.ArrowLeft) yawT += 1.6 * dt; if (keys.ArrowRight) yawT -= 1.6 * dt;
   if (LOOK_SMOOTH) { yaw = lookDamp(yaw, yawT, dt); pitch = lookDamp(pitch, pitchT, dt); } else { yaw = yawT; pitch = pitchT; }   // 緩衝：畫面角度追目標角度（THREE.MathUtils.damp，與幀率無關、不過衝）
   const l = Math.hypot(f, s); if (l > 1) { f /= l; s /= l; }
-  const speed = keys.ShiftLeft || keys.ShiftRight ? 3.2 : 1.6;
+  const speed = keys.ShiftLeft || keys.ShiftRight ? 2.2 : 1.1;   // 2026-11-17：番薯說走太快，鍵盤／搖桿一起慢約三成。
   fwd.set(-Math.sin(yaw), 0, -Math.cos(yaw)); right.set(Math.cos(yaw), 0, -Math.sin(yaw));
   // Sweep each axis before crossing a face. Resolving overlaps by the nearest edge
   // can push the visitor into a previously checked, overlapping stand/panel box.

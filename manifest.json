@@ -7,9 +7,10 @@
   "files": [
     {
       "path": "展場/index.html",
-      "bytes": 83592,
+      "bytes": 83490,
       "source_sha256": "20301b7a0a700ff1d54153935c8b96928af8c1eadb21a32a5e520fc2cd8ace16",
-      "sha256": "68a63ef7dd92e6a2000f19bd4e9b1ee013bee4b3815c4a2777e5baa4fd8b618d"
+      "sha256": "deceeb9644e3d018809a23081dedfe4e16e5ce3aefc266733fdee757ff22d518",
+      "note": "2026-11-17 公開後只改雕像3 那一行（改載扶正版劍龍、拿掉 ?dragon 診斷參數）；source_sha256 是打包當時的來源"
     },
     {
       "path": "展場/互動回饋.js",
@@ -100,7 +101,13 @@
       "bytes": 5866416,
       "source_sha256": "5a757b4c7e702a23e4d6ec0f3a10ca445984d992eb29e1fd4a3a37cc34febe7a",
       "sha256": "5a757b4c7e702a23e4d6ec0f3a10ca445984d992eb29e1fd4a3a37cc34febe7a"
+    },
+    {
+      "path": "作品4_新雕件/重建_20261117_遮罩版/sculpture3_masked_level_web.glb",
+      "bytes": 5866420,
+      "source_sha256": "e34eba9631a7845bff3505a2555bd59486a2edae71fbde57089627fe505fc958",
+      "sha256": "e34eba9631a7845bff3505a2555bd59486a2edae71fbde57089627fe505fc958"
     }
   ],
-  "total_bytes": 40266595
+  "total_bytes": 46132913
 }

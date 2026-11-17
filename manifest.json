@@ -97,22 +97,22 @@
     },
     {
       "path": "作品4_新雕件/sculpture3_detail_20261117.glb",
-      "bytes": 33413156,
-      "sha256": "8efe6ba72cf062dd3dce12768c5024a7fdb9fc575864b542a40cb5ca760ca2f4",
-      "source_sha256": "8efe6ba72cf062dd3dce12768c5024a7fdb9fc575864b542a40cb5ca760ca2f4",
+      "bytes": 33429704,
+      "sha256": "69e153ddc0397eb9acebd2c7d98073c30b8cde354c48626d1ab956a6c6f0c719",
+      "source_sha256": "69e153ddc0397eb9acebd2c7d98073c30b8cde354c48626d1ab956a6c6f0c719",
       "note": "番薯已接受的本機原模型，原貼圖／網格未壓縮或修改。"
     },
     {
       "path": "作品4_新雕件/劍龍.html",
-      "bytes": 7672,
-      "sha256": "fd771fbcb81d25d5f0f8d83f6239906548a947877425a2b0563f50550c169198",
-      "source_sha256": "fd771fbcb81d25d5f0f8d83f6239906548a947877425a2b0563f50550c169198"
+      "bytes": 8726,
+      "sha256": "a7947eed2ed844a9c8c37714d20cb47f880d9c7307c74553be31f804b33c5f9a",
+      "source_sha256": "a7947eed2ed844a9c8c37714d20cb47f880d9c7307c74553be31f804b33c5f9a"
     },
     {
       "path": "展場/index.html",
-      "bytes": 84454,
-      "sha256": "e79c517015d046dc1a67de5e207b083c7fd3e4c072e11de9a053ec4277dee40e",
-      "source_sha256": "e0982e98fd182ab3ba43b752b26def0a7691b37f3f42e198a53fbb0ef403208a"
+      "bytes": 85543,
+      "sha256": "b5d3c98afb0cf6dcfd993584e8361ff2e21bbddf65c29c433c9b0bc12b4e17ec",
+      "source_sha256": "e8946607e4b2c7bdf6a4654ab668d715921c8c260f8c618f1daea06ef2b05497"
     },
     {
       "path": "小釋迦/小釋迦.glb",
@@ -127,5 +127,5 @@
       "source_sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935"
     }
   ],
-  "total_bytes": 119577684
+  "total_bytes": 119596375
 }

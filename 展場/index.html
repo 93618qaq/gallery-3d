@@ -530,7 +530,7 @@ const AO_MIN = Q.get('ao') !== null ? +Q.get('ao') : .3, AO_H = Q.get('aoh') !==
 const REAL = [
   {no: 7, name: '宋立｜小釋迦', dir: '../小釋迦/', model: '小釋迦.glb', dims: [.10417350769042969, .19, .10515007972717285], tilt: 0, s: 0, stand: [2.2, 1.15, 2.5]},
   {no: 5, name: '小貨車（試轉版・細桿待修）', dir: '../作品3_小貨車/', model: TRUCK_FLAT ? 'truck_flatcut.glb' : Q.get('truck') === 'belly' ? 'truck_belly_clean.glb' : Q.get('truck') === 'old' ? 'truck_clean_v2.glb' : '重建_20261117_遮罩版/truck_masked_web.glb', dims: [.375, TRUCK_FLAT ? .268 : .28, .235], tilt: 0, s: 0, stand: [-3.4,.95,1.0]},   // y 回 .95＝貼在展台頂（番薯 11/16 試過沉 2 公分，12:42 說不要下沈，已取消）
-  {no: 6, name: '雕像3（試轉版・名稱待定）', dir: '../作品4_新雕件/', model: 'sculpture3_detail_20261117.glb', dims: [0.24627715549765664, 0.21999999999999997, 0.2146679790523183], tilt: 0, s: 0, stand: [3.3, .9, 1.2]},   // 2026-11-17：換入番薯已接受的細節重製原檔，244841面、4096 PNG；只改模型與實際包圍盒尺寸，展台與燈光沿用。
+  {no: 6, name: '雕像3（試轉版・名稱待定）', dir: '../作品4_新雕件/', model: 'sculpture3_detail_20261117.glb?v=rod-metal-20261117', dims: [0.24627715549765664, 0.21999999999999997, 0.2146679790523183], tilt: 0, s: 0, stand: [3.3, .9, 1.2]},   // 2026-11-17：換入番薯已接受的細節重製原檔，244841面、4096 PNG；只改模型與實際包圍盒尺寸，展台與燈光沿用。
   {no: 3, name: '雕件（試作）', dir: '../雕件試做/viewer/', dims: [0.155, 0.285, 0.09], tilt: 9, s: 4.1},
   {no: 4, name: '作品2', dir: '../作品2_藍鳥/第3次_高精細/', dims: [0.155, 0.293, 0.093], tilt: 0, model: Q.get('model') || 'bluebird_closed_v2.glb', rawMaterial: true, frontTex: Q.get('ftex') || 'front/tex.jpg', extraTextures: {back: 'back/tex.jpg', seam: Q.get('seam') || 'seam_v2.webp'}, normals: {front: 'front/normal.png', back: 'back/normal.png'}, s: 4.9},
 ];
@@ -550,6 +550,12 @@ REAL.forEach(work => {
     partMaterials[name] = material;
   });
   }
+// ACCEPTED_DRAGON_SHAFT_20261117
+// Shaft-only room reflection: broad pale wall, darker ceramic/floor and overhead light.
+const sw=256,sh=128,sd=new Float32Array(sw*sh*4);
+for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){const a=x/sw*2*Math.PI,t=y/sh*Math.PI,i=(y*sw+x)*4;let d=Math.abs(a-1.25);d=Math.min(d,2*Math.PI-d);let e=Math.abs(a-4.6);e=Math.min(e,2*Math.PI-e);const wall=.57*Math.exp(-d*d/.65)+.19*Math.exp(-e*e/1.1),ceiling=.55*Math.pow(Math.max(0,Math.cos(t)),5),level=.055+wall*Math.pow(Math.sin(t),.65)+ceiling;sd[i]=level*1.02;sd[i+1]=level;sd[i+2]=level*.95;sd[i+3]=1;}
+const se=new THREE.DataTexture(sd,sw,sh,THREE.RGBAFormat,THREE.FloatType);se.mapping=THREE.EquirectangularReflectionMapping;se.needsUpdate=true;const sp=new THREE.PMREMGenerator(renderer),softShaftEnvironment=sp.fromEquirectangular(se).texture;se.dispose();sp.dispose();
+function applyAcceptedDragonShaft(mat){if(mat.name==='Added metal shaft only'){mat.envMap=softShaftEnvironment;mat.envMapIntensity=1.2;mat.needsUpdate=true;}}
   const mount = obj => {
     const parts = [], bb = new THREE.Box3();
     obj.updateMatrixWorld(true);
@@ -568,6 +574,7 @@ REAL.forEach(work => {
         };
         material.customProgramCacheKey = () => 'truck-ao';
       }
+      if(work.no===6) applyAcceptedDragonShaft(material);
       parts.push({geo, material, name: m.name});
     });
     if (bb.isEmpty()) throw new Error('作品沒有可用的網格');

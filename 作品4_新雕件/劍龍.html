@@ -22,10 +22,16 @@ function view(back=false){stop();const damping=c.enableDamping;c.enableDamping=f
 function zoom(f){stop();const offset=cam.position.clone().sub(c.target);offset.setLength(THREE.MathUtils.clamp(offset.length()*f,c.minDistance,c.maxDistance));cam.position.copy(c.target).add(offset);c.update()}
 function fail(){loaded=false;window.ready=false;buttons.forEach(b=>b.disabled=true);status.hidden=false;status.textContent='作品載入失敗，請重新整理，或按右上角返回展場。'}
 const mgr=new THREE.LoadingManager();mgr.onError=fail;mgr.onLoad=()=>{if(!obj||status.textContent.includes('失敗'))return;loaded=true;window.ready=true;status.hidden=true;buttons.forEach(b=>b.disabled=false);view()};
-new GLTFLoader(mgr).setMeshoptDecoder(MeshoptDecoder).load('sculpture3_detail_20261117.glb',gltf=>{
+// ACCEPTED_DRAGON_SHAFT_20261117
+// Shaft-only room reflection: broad pale wall, darker ceramic/floor and overhead light.
+const sw=256,sh=128,sd=new Float32Array(sw*sh*4);
+for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){const a=x/sw*2*Math.PI,t=y/sh*Math.PI,i=(y*sw+x)*4;let d=Math.abs(a-1.25);d=Math.min(d,2*Math.PI-d);let e=Math.abs(a-4.6);e=Math.min(e,2*Math.PI-e);const wall=.57*Math.exp(-d*d/.65)+.19*Math.exp(-e*e/1.1),ceiling=.55*Math.pow(Math.max(0,Math.cos(t)),5),level=.055+wall*Math.pow(Math.sin(t),.65)+ceiling;sd[i]=level*1.02;sd[i+1]=level;sd[i+2]=level*.95;sd[i+3]=1;}
+const se=new THREE.DataTexture(sd,sw,sh,THREE.RGBAFormat,THREE.FloatType);se.mapping=THREE.EquirectangularReflectionMapping;se.needsUpdate=true;const sp=new THREE.PMREMGenerator(r),softShaftEnvironment=sp.fromEquirectangular(se).texture;se.dispose();sp.dispose();
+function applyAcceptedDragonShaft(mat){if(mat.name==='Added metal shaft only'){mat.envMap=softShaftEnvironment;mat.envMapIntensity=1.2;mat.needsUpdate=true;}}
+new GLTFLoader(mgr).setMeshoptDecoder(MeshoptDecoder).load('sculpture3_detail_20261117.glb?v=rod-metal-20261117',gltf=>{
  obj=gltf.scene;obj.updateMatrixWorld(true);const box=new THREE.Box3().setFromObject(obj,true),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());
  const holder=new THREE.Group();holder.add(obj);obj.position.sub(center);// 原始驗收模型保持原尺寸與比例，不變形。
- obj.traverse(m=>{if(m.isMesh){for(const mat of [m.material].flat()){if(mat.map)mat.map.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy())}}});s.add(holder);window.__sculpture.object=holder;
+ obj.traverse(m=>{if(m.isMesh){for(const mat of [m.material].flat()){applyAcceptedDragonShaft(mat);if(mat.map)mat.map.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy())}}});s.add(holder);window.__sculpture.object=holder;
 },undefined,fail);
 document.querySelector('#front').onclick=()=>view();document.querySelector('#rear').onclick=()=>view(true);document.querySelector('#closer').onclick=()=>zoom(.8);document.querySelector('#farther').onclick=()=>zoom(1.25);
 spin.onclick=()=>{c.autoRotate=!c.autoRotate;spin.setAttribute('aria-pressed',String(c.autoRotate));spin.textContent=`自動旋轉：${c.autoRotate?'開':'關'}`};c.addEventListener('start',stop);

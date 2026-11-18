@@ -109,12 +109,6 @@
       "source_sha256": "a7947eed2ed844a9c8c37714d20cb47f880d9c7307c74553be31f804b33c5f9a"
     },
     {
-      "path": "展場/index.html",
-      "bytes": 85543,
-      "sha256": "b5d3c98afb0cf6dcfd993584e8361ff2e21bbddf65c29c433c9b0bc12b4e17ec",
-      "source_sha256": "e8946607e4b2c7bdf6a4654ab668d715921c8c260f8c618f1daea06ef2b05497"
-    },
-    {
       "path": "小釋迦/小釋迦.glb",
       "bytes": 45881552,
       "sha256": "fe6e82188085cf8bbf51d3e6fa72c819f411596e535bb7e1df6183b4d600413c",
@@ -125,7 +119,25 @@
       "bytes": 7843,
       "sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935",
       "source_sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935"
+    },
+    {
+      "path": "展場/index.html",
+      "bytes": 86930,
+      "sha256": "c26af5a7e7922d710f07f2bd2799d41bf8e5c6527f2a67f56827e1000d4d0e88",
+      "source_sha256": "3985c2932d7bb7d4c756176785f70ba8ae91414f83bf0e1da64e181dfbd139e9"
+    },
+    {
+      "path": "三角龍/三角龍_web.glb",
+      "bytes": 53185452,
+      "sha256": "6a93db0b0e71877776f6cf2cbcbe1951b257c3ecc752fb5d35daee9c63fe48b0",
+      "source_sha256": "19a09a80137574a3790a662a07b43b054c442310e2c8ec5a35a2d13ca6873ff6"
+    },
+    {
+      "path": "三角龍/三角龍.html",
+      "bytes": 2826,
+      "sha256": "71857236b34c98f28586d325e1588ffad62781056b3b8e9d2a10d2eabb98f6bc",
+      "source_sha256": "78d904b9da5c8454a570586bb10f6612b7b9ac3a3d345cb909e4feeaa67f166d"
     }
   ],
-  "total_bytes": 119596375
+  "total_bytes": 172786040
 }

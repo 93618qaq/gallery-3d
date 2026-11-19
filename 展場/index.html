@@ -58,7 +58,7 @@
 <div id="load" role="status" aria-live="polite">載入展場中…（第一次要幾秒）</div>
 <div id="intro" aria-hidden="true"><div id="title"></div><div id="sub"></div></div>
 <div id="bar"><button id="back">← 回到展場</button><button id="spin">自動旋轉：關</button></div>
-<nav id="realNav" aria-label="真實雕件"><button data-real="3" disabled>雕像1・載入中</button><button data-real="4" disabled>雕像2・載入中</button><button data-real="5" disabled hidden>小貨車・載入中</button><button data-real="6" disabled>劍龍・載入中</button><button data-real="7" disabled>小釋迦・載入中</button><button data-real="8" disabled>三角龍・載入中</button></nav>
+<nav id="realNav" aria-label="真實雕件"><button data-real="3" disabled>雕像1・載入中</button><button data-real="4" disabled>雕像2・載入中</button><button data-real="5" disabled hidden>小貨車・載入中</button><button data-real="6" disabled>劍龍・載入中</button><button data-real="7" disabled>小釋迦・載入中</button><button data-real="8" disabled>三角龍・載入中</button><button data-real="9" disabled>大釋迦・載入中</button></nav>
 <div id="crouch"><button id="crouchUp" type="button" aria-pressed="false" title="按住慢慢站起（快速鍵：空白鍵）">按住站起 ▲（空白鍵）</button><button id="crouchDn" type="button" aria-pressed="false" title="按住慢慢蹲下（快速鍵：C）">按住蹲下 ▼（C 鍵）</button></div>
 <div id="name" role="status" aria-live="polite"></div>
 <div id="tourNote">本機試作・畫作與展台雕件為示意</div>
@@ -223,6 +223,7 @@ addBox(.45, .95, .45, -1.7, -2.15, 'truck');      // 長方形・粗
 addBox(.25, 1.2, .25, -2.4, 2.4, 'cone');     // 長方形・細
 addCyl(.25, .9, 0, -2.15, 'real6');           // 圓柱・粗（11/16 起放真作品「雕像3」，原本的兩件示意雕件拿掉）
 addBox(.36, 1.0, .36, 2.75, -1.7, 'real8');
+addBox(.36, 1.05, .36, -2.85, -1.7, 'real9');
 addCyl(.13, 1.15, 1.7, -2.15, 'real7');          // 圓柱・細
 addCyl(.13, 1.0, -3.3, 3.0, 'cone');          // 圓柱・細（11/9 番薯：「這個錐子真的很擋路」→ 原本在後牆正中間 (0,-2.4)、兩件真作品正前方，移到入口左邊角落）
 // 桌子（1.4×0.7×0.75）
@@ -250,7 +251,7 @@ addCyl(.13, 1.0, -3.3, 3.0, 'cone');          // 圓柱・細（11/9 番薯：�
   shadowRects.push({x: -3.9, z: -.1, w: .6, d: 1.0, pad: .3, a: .28});
   stands.push({x: -3.9, z: -.35, h: .77, top: 'knot'}, {x: -3.9, z: .15, h: .77, top: 'ico2'});
 }
-stands.forEach(s => { if (s.top === 'truck' || s.top === 'real6' || s.top === 'real7' || s.top === 'real8') return;   // 展台上的示意雕件（不是真作品）；大展台放 2 件
+stands.forEach(s => { if (s.top === 'truck' || s.top === 'real6' || s.top === 'real7' || s.top === 'real8' || s.top === 'real9') return;   // 展台上的示意雕件（不是真作品）；大展台放 2 件
   const mk = (top, dx, dz) => {
     let geo, mat = clayMat;
     if (top === 'ico') geo = new THREE.IcosahedronGeometry(.13, 1);
@@ -493,6 +494,8 @@ if (Q.get('sspot') !== '0') {
 const shakaSpot=new THREE.SpotLight(0xffffff,14,0,.26,1,2);shakaSpot.name='shakaSpot';shakaSpot.position.set(1.3,H-.325,-1.55);shakaSpot.target.position.set(1.7,1.245,-2.15);scene.add(shakaSpot,shakaSpot.target);
 const triSpot=new THREE.SpotLight(0xffffff,14,0,.26,1,2);triSpot.name='triceratopsSpot';triSpot.position.set(2.4,H-.325,-1.0);triSpot.target.position.set(2.75,1.1325,-1.7);scene.add(triSpot,triSpot.target);
 const triLamp=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.095,16),new THREE.MeshStandardMaterial({color:0x171717,roughness:.7}));triLamp.position.copy(triSpot.position);triLamp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),triSpot.target.position.clone().sub(triSpot.position).normalize());scene.add(triLamp);
+const dashiSpot=new THREE.SpotLight(0xffffff,14,0,.26,1,2);dashiSpot.name='dashiSpot';dashiSpot.position.set(-2.5,H-.325,-1.0);dashiSpot.target.position.set(-2.85,1.23,-1.7);scene.add(dashiSpot,dashiSpot.target);
+const dashiLamp=new THREE.Mesh(new THREE.CylinderGeometry(.022,.022,.095,16),new THREE.MeshStandardMaterial({color:0x171717,roughness:.7}));dashiLamp.position.copy(dashiSpot.position);dashiLamp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dashiSpot.target.position.clone().sub(dashiSpot.position).normalize());scene.add(dashiLamp);
 const focus = new THREE.SpotLight(0xfff0dc, 0, 0, .2, .8, 2); scene.add(focus, focus.target);
 const fState = {slot: null, level: 0};
 let hovered = null;
@@ -524,13 +527,14 @@ const hintText = TOUCH ? '左下搖桿走路・空白處拖曳看四周・點作
 hintEl.textContent = '真作品載入中…（展場可以先逛）';
 let loaded = false;
 const assetErrors = [];
-mgr.onError = url => { assetErrors.push(url); for (const b of realButtons) { const work = REAL.find(w => w.no === +b.dataset.real); if (new URL(url, location.href).pathname.startsWith(new URL(work.dir, location.href).pathname)) { b.failed = true; b.textContent = (work.no === 8 ? '三角龍・載入失敗' : work.no === 7 ? '小釋迦・載入失敗' : work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`); } } hintEl.textContent = '部分真作品載入失敗，請重新整理；示意展場仍可操作'; hintEl.style.opacity = 1; };
+mgr.onError = url => { assetErrors.push(url); for (const b of realButtons) { const work = REAL.find(w => w.no === +b.dataset.real); if (new URL(url, location.href).pathname.startsWith(new URL(work.dir, location.href).pathname)) { b.failed = true; b.textContent = (work.no === 9 ? '大釋迦・載入失敗' : work.no === 8 ? '三角龍・載入失敗' : work.no === 7 ? '小釋迦・載入失敗' : work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`); } } hintEl.textContent = '部分真作品載入失敗，請重新整理；示意展場仍可操作'; hintEl.style.opacity = 1; };
 mgr.onProgress = (url, done, total) => { if (!assetErrors.length) hintEl.textContent = `真作品載入中 ${done}／${total}（展場可以先逛）`; };
 mgr.onLoad = () => { loaded = true; window.__ready = assetErrors.length === 0; window.__assetsSettled = true; if (onAssetsSettled) onAssetsSettled(); if (!assetErrors.length) hintEl.textContent = hintText; console.log('[展場] 真作品資源結束', {ready: window.__ready, errors: assetErrors.length, ms: Math.round(performance.now())}); };
 const TRUCK_FLAT = Q.get('truck') === 'flat';   // ?truck=flat：試看「底部平切」版小貨車（切掉最低 12 公釐，高 .268）；沒加參數＝原模型
 const TRUCK_AO = Q.get('truck') === 'ao';       // ?truck=ao：試看「車底漸暗」版（不動模型、不下陷，最低 AO_H 公尺內由暗漸變回原色，像貼地陰影）；?ao=數字 可調最暗亮度（預設 .3）、?aoh=公尺 可調高度（預設 .016）
 const AO_MIN = Q.get('ao') !== null ? +Q.get('ao') : .3, AO_H = Q.get('aoh') !== null ? +Q.get('aoh') : .016;
 const REAL = [
+  {no: 9, name: '宋立｜大釋迦', dir: '../大釋迦/', model: '大釋迦_web.glb?v=71311fb1bcc776e5', dims: [0.16153838364723863, 0.3552491358912574, 0.1686817164625885], tilt: 0, s: 0, stand: [-2.85, 1.05, -1.7]},
   {no: 8, name: '宋立｜三角龍', dir: '../三角龍/', model: '三角龍_web.glb', dims: [.1538538934598651, .265, .18608058394894595], tilt: 180, s: 0, stand: [2.75, 1.0, -1.7]},
   {no: 7, name: '宋立｜小釋迦', dir: '../小釋迦/', model: '小釋迦.glb', dims: [.10417350769042969, .19, .10515007972717285], tilt: 0, s: 0, stand: [1.7, 1.15, -2.15]},
   {no: 5, name: '小貨車（試轉版・細桿待修）', dir: '../作品3_小貨車/', model: TRUCK_FLAT ? 'truck_flatcut.glb' : Q.get('truck') === 'belly' ? 'truck_belly_clean.glb' : Q.get('truck') === 'old' ? 'truck_clean_v2.glb' : '重建_20261117_遮罩版/truck_masked_web.glb', dims: [.375, TRUCK_FLAT ? .268 : .28, .235], tilt: 0, s: 0, stand: [-1.7,.95,-2.15]},   // y 回 .95＝貼在展台頂（番薯 11/16 試過沉 2 公分，12:42 說不要下沈，已取消）
@@ -586,7 +590,7 @@ function applyAcceptedDragonShaft(mat){if(mat.name==='Added metal shaft only'){m
     const f = faces[0], x = f.px + f.tx * work.s, z = f.pz + f.tz * work.s, nrm = new THREE.Vector3(f.nx, 0, f.nz);
     const g = new THREE.Group();
     parts.forEach(({geo, material, name}) => { const m = new THREE.Mesh(geo, material); m.name = name; m.position.set(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2); g.add(m); m.userData.hero = g; pickables.push(m); });
-    g.scale.copy(sc3);
+    if(work.no===9){g.scale.set(1,1,1);}else{g.scale.copy(sc3);}
     const wallPos = new THREE.Vector3(x, CFG.hangY - dh / 2, z).addScaledVector(nrm, dd / 2 + .004);
     g.position.copy(wallPos); g.rotation.y = f.rotY; scene.add(g);
     const wc = new THREE.Vector3(x, CFG.hangY, z);
@@ -600,7 +604,7 @@ function applyAcceptedDragonShaft(mat){if(mat.name==='Added metal shaft only'){m
       shadowMesh(P, T, C, I);
     }
     if (!work.stand) addWallShadow(g, f, wc, dw * .62, dh * .62, {pad: .09, a: .34, dy: -.03, fw: dw, fh: dh, real: true}); buildWallShadows();   // 真作品形狀不規則：影子縮成柔和的一團，不畫成方塊
-    const button = realButtons.find(b => +b.dataset.real === work.no); button.work = g; button.textContent = button.failed ? (work.no === 8 ? '三角龍・載入失敗' : work.no === 7 ? '小釋迦・載入失敗' : work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`) : (work.no === 8 ? '三角龍 ↗' : work.no === 7 ? '小釋迦 ↗' : work.no === 5 ? '近看小貨車' : work.no === 6 ? '劍龍 ↗' : work.no === 3 ? '雕件1 ↗' : '雕件2 ↗');
+    const button = realButtons.find(b => +b.dataset.real === work.no); button.work = g; button.textContent = button.failed ? (work.no === 9 ? '大釋迦・載入失敗' : work.no === 8 ? '三角龍・載入失敗' : work.no === 7 ? '小釋迦・載入失敗' : work.no === 5 ? '小貨車・載入失敗' : `雕像${work.no === 6 ? 3 : work.no === 3 ? 1 : 2}・載入失敗`) : (work.no === 9 ? '大釋迦 ↗' : work.no === 8 ? '三角龍 ↗' : work.no === 7 ? '小釋迦 ↗' : work.no === 5 ? '近看小貨車' : work.no === 6 ? '劍龍 ↗' : work.no === 3 ? '雕件1 ↗' : '雕件2 ↗');
   };
   if (isGLB) {
     // Keep LoadingManager pending while the matching r160 loader/decoder imports.
@@ -718,6 +722,7 @@ const ease = V === 1 ? (t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3
 function startTween(toPos, toQuat, dur, done) { if (REDUCE) { camera.position.copy(toPos); camera.quaternion.copy(toQuat); done(); return; } tw = {t: 0, dur, p0: camera.position.clone(), q0: camera.quaternion.clone(), p1: toPos, q1: toQuat, done}; }
 function enterInspect(g) {
   if (state !== 'walk' || noInspect(g)) return;
+  if (g.userData.real && g.userData.n === 9) { clearInput(); window.open('../大釋迦/大釋迦.html?from=gallery&v=71311fb1bcc776e5', '_blank', 'noopener'); return; }
   if (g.userData.real && g.userData.n === 8) { clearInput(); window.open('../三角龍/三角龍.html?from=gallery', '_blank', 'noopener'); return; }
   if (g.userData.real && g.userData.n === 7) { clearInput(); window.open('../小釋迦/小釋迦.html?from=gallery', '_blank', 'noopener'); return; }
   if (g.userData.real && g.userData.n === 6) { clearInput(); window.open('../作品4_新雕件/劍龍.html?from=gallery', '_blank', 'noopener'); return; }

@@ -121,12 +121,6 @@
       "source_sha256": "67a004e5de0f41fbab3405e1ea8415daf6f815cc1e6208a32a05da39e4a43935"
     },
     {
-      "path": "展場/index.html",
-      "bytes": 86930,
-      "sha256": "c26af5a7e7922d710f07f2bd2799d41bf8e5c6527f2a67f56827e1000d4d0e88",
-      "source_sha256": "3985c2932d7bb7d4c756176785f70ba8ae91414f83bf0e1da64e181dfbd139e9"
-    },
-    {
       "path": "三角龍/三角龍_web.glb",
       "bytes": 53185452,
       "sha256": "6a93db0b0e71877776f6cf2cbcbe1951b257c3ecc752fb5d35daee9c63fe48b0",
@@ -137,7 +131,49 @@
       "bytes": 2826,
       "sha256": "71857236b34c98f28586d325e1588ffad62781056b3b8e9d2a10d2eabb98f6bc",
       "source_sha256": "78d904b9da5c8454a570586bb10f6612b7b9ac3a3d345cb909e4feeaa67f166d"
+    },
+    {
+      "path": "展場/index.html",
+      "bytes": 88168,
+      "sha256": "a7a9c0175a855b2804013c939f98b1a1c0eba585f7c1f9677a97aaa00a4e4850",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/大釋迦_web.glb",
+      "bytes": 7335068,
+      "sha256": "8d380641652c0102dade49889b85667cc85025725e8238178d819b2057c063e5",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/大釋迦.html",
+      "bytes": 3966,
+      "sha256": "80f73105ab452d086575a46ac7c968d70bd68bc575ce7ab6f44fc0fac310f81b",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/dashi_71311fb1bcc776e5_tex0.webp",
+      "bytes": 26568868,
+      "sha256": "a3b2e60ab5d2319a2d3cd5907fc932696ccc69068ce669333c22f82caa36e020",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/dashi_71311fb1bcc776e5_tex1.webp",
+      "bytes": 50773088,
+      "sha256": "1348e38060922d79ce851b750fd3ffe7ab5d92da453748c56222c6c1bc700099",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/dashi_71311fb1bcc776e5_tex2.webp",
+      "bytes": 37145522,
+      "sha256": "1773bae6d804e7431c6b340d5246b1c4993313370913b1c77c31fc569d978f64",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
+    },
+    {
+      "path": "大釋迦/dashi_71311fb1bcc776e5_tex3.webp",
+      "bytes": 37145520,
+      "sha256": "81985b4c9a75b6f3b9e8d7c1c39d4957dcb30fbec498ebfa6357b3def0611936",
+      "source_sha256": "71311fb1bcc776e5c280dd3badae12950e45805ec76b79872ae5cab7975ee82d"
     }
   ],
-  "total_bytes": 172786040
+  "total_bytes": 331759310
 }
